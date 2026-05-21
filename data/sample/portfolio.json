@@ -1,0 +1,16 @@
+{
+  "cash": 0.15,
+  "positions": {
+    "AAPL": 0.30,
+    "MSFT": 0.25,
+    "TSLA": 0.20,
+    "NVDA": 0.10
+  },
+  "constraints": {
+    "max_position_weight": 0.35,
+    "max_trade_weight": 0.15,
+    "min_cash_weight": 0.10,
+    "volatility_limit": 0.035,
+    "min_confidence": 0.35
+  }
+}

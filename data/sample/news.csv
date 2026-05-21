@@ -1,0 +1,13 @@
+ticker,date,headline,summary,sentiment
+AAPL,2026-05-06,Apple suppliers report stable demand,Channel checks suggest modestly improving iPhone component orders,0.25
+AAPL,2026-05-12,Services revenue outlook improves,Analysts raise estimates for recurring services revenue,0.45
+AAPL,2026-05-16,Regulatory review weighs on app store policy,Potential policy changes may pressure service margins,-0.35
+MSFT,2026-05-07,Azure demand remains resilient,Enterprise cloud spending continues to support growth,0.55
+MSFT,2026-05-13,AI infrastructure spending increases,Capex is high but management frames it as demand-backed expansion,0.20
+MSFT,2026-05-18,Security product bundle gains customers,New enterprise contracts add recurring revenue visibility,0.40
+TSLA,2026-05-05,Price cuts expand in key markets,Lower prices may pressure automotive gross margin,-0.55
+TSLA,2026-05-11,Recall notice affects selected vehicles,Software-related recall creates near-term headline risk,-0.45
+TSLA,2026-05-17,Delivery estimates revised lower,Analysts cite demand uncertainty and rising competition,-0.60
+NVDA,2026-05-08,Data center demand remains strong,Hyperscale customers continue ordering accelerators,0.70
+NVDA,2026-05-14,Export control discussion creates uncertainty,Potential restrictions could affect selected international sales,-0.30
+NVDA,2026-05-18,Analysts lift AI chip revenue estimates,Consensus estimates rise after channel checks,0.65
