@@ -77,7 +77,7 @@ Decision / Ranking / PortfolioRecommendation
         |
         +-- Baseline comparison
         +-- Equal-weight backtest
-        +-- Markdown/JSON reports
+        +-- Markdown/HTML/JSON reports
 ```
 
 ## 原计划与完成情况
@@ -93,7 +93,7 @@ Decision / Ranking / PortfolioRecommendation
 | LLM | OpenRouter 复核，可 fallback | 已完成：`auto`、`required`、`off` 三种模式 |
 | Baseline | 技术、无风控、单 Agent/LLM baseline | 已完成 |
 | 回测 | 输出基础收益风险指标 | 已完成：equal-weight 辅助回测 |
-| 报告 | JSON + Markdown | 已完成 |
+| 报告 | JSON + Markdown + HTML dashboard | 已完成 |
 | 测试 | 覆盖核心任务和 final cases | 已完成 |
 
 ## 当前 final benchmark 摘要
@@ -127,6 +127,7 @@ Decision / Ranking / PortfolioRecommendation
 - 脚本：`scripts/run_demo.py`、`scripts/generate_final_data.py`
 - 测试：`tests/test_pipeline.py`
 - 报告：`reports/final_benchmark_results.md`
+- 展示页：`reports/final_dashboard.html`
 - 文档：`README.md`、`docs/PROGRESS.md`、`docs/AI_COLLAB_CONTEXT.md`
 
 ## 复现原则

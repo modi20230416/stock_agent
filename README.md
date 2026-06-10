@@ -9,7 +9,7 @@
 - Agent：市场信息、新闻情绪、基本面、风险管理、决策 Agent，以及可选 OpenRouter LLM 复核 Agent。
 - Baseline：技术规则 baseline、无风险管理 ensemble baseline、direct LLM/single-agent baseline。
 - 回测指标：equal-weight 辅助回测，输出累计收益、年化收益、最大回撤、Sharpe ratio。
-- 报告：运行后生成 JSON 详情和 Markdown 摘要，其中 final benchmark 当前 15/15 通过。
+- 报告：运行后生成 JSON 详情、Markdown 摘要和静态 HTML dashboard，其中 final benchmark 当前 15/15 通过。
 
 ## 快速运行
 
@@ -82,8 +82,9 @@ $env:OPENROUTER_MODEL="openrouter/free"
 - `reports/benchmark_results.md`
 - `reports/final_benchmark_results.json`
 - `reports/final_benchmark_results.md`
+- `reports/final_dashboard.html`
 
-仓库默认提交 Markdown 摘要，JSON 详情作为本地生成产物保留在 `.gitignore` 中。
+仓库默认提交 Markdown/HTML 摘要，JSON 详情作为本地生成产物保留在 `.gitignore` 中。
 
 ## PyCharm 运行
 
@@ -114,7 +115,7 @@ data/sample/              中期 minimal sample 数据
 data/processed/           final version 离线处理后数据
 data/benchmark/           固定 benchmark case suite
 docs/                     项目计划、进度、AI 协作上下文、报告草稿
-reports/                  benchmark Markdown 摘要和本地 JSON 详情
+reports/                  benchmark Markdown/HTML 摘要和本地 JSON 详情
 scripts/generate_final_data.py  生成 final 离线数据集
 scripts/run_demo.py       CLI 运行入口
 src/stock_agent/          多 Agent 系统实现

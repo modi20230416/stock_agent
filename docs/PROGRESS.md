@@ -42,7 +42,7 @@
   - 无风险管理 ensemble baseline
   - Direct LLM/single-agent baseline
   - Equal-weight backtest：累计收益、年化收益、最大回撤、Sharpe ratio
-  - JSON 详情报告和 Markdown 摘要报告
+  - JSON 详情报告、Markdown 摘要报告和静态 HTML dashboard
 
 - 测试
   - 单股分析结构完整性
@@ -64,6 +64,7 @@
 
 - 单元测试：6/6 通过。
 - Final benchmark：15/15 cases 通过。
+- Static dashboard：`reports/final_dashboard.html` 已生成。
 - 股票池：12 支股票，满足 proposal 中 10-20 支股票范围。
 - Screening cases：2/2 通过。
 - Rebalance cases：3/3 通过，均满足组合约束。
@@ -73,6 +74,7 @@
 
 ```text
 reports/final_benchmark_results.md
+reports/final_dashboard.html
 ```
 
 ## 与中期版本相比的推进
@@ -84,6 +86,7 @@ reports/final_benchmark_results.md
 - Agent 输出增加事件类型、回撤、冲突检测和更完整风险提示。
 - baseline 从 2 个扩展到 3 个。
 - 增加基础回测指标。
+- 增加无依赖静态 HTML dashboard。
 - CLI 增加 `--task final`，可一键生成最终评估报告。
 - 文档更新为 final project 复现说明。
 

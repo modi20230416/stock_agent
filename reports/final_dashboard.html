@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Agent Final Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --line: #d9dee7;
+      --panel: #ffffff;
+      --pass: #176b3a;
+      --fail: #a33a30;
+      --accent: #1e5aa8;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.55 Arial, Helvetica, sans-serif;
+    }
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      padding: 28px 36px 22px;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 18px 40px;
+    }
+    h1, h2 {
+      margin: 0;
+      line-height: 1.2;
+    }
+    h1 {
+      font-size: 28px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 14px;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .metric, section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .metric .value {
+      display: block;
+      margin-top: 5px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    section {
+      margin-bottom: 18px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: var(--panel);
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    .pass {
+      color: var(--pass);
+      font-weight: 700;
+    }
+    .fail {
+      color: var(--fail);
+      font-weight: 700;
+    }
+    .muted {
+      color: var(--muted);
+    }
+    .criteria {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 760px) {
+      header {
+        padding: 22px 18px 18px;
+      }
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+      table {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Stock Agent Final Dashboard</h1>
+    <div class="subtitle">Deterministic offline benchmark; not investment advice.</div>
+  </header>
+  <main>
+    <div class="grid">
+      <div class="metric"><span class="label">As of</span><span class="value">2026-05-22</span></div>
+      <div class="metric"><span class="label">Pass rate</span><span class="value">100%</span></div>
+      <div class="metric"><span class="label">Cases</span><span class="value">15/15</span></div>
+      <div class="metric"><span class="label">Universe</span><span class="value">12 stocks</span></div>
+    </div>
+    <section>
+      <h2>Final Criteria</h2>
+      <ul class="criteria"><li><span class="pass">PASS</span> case suite has 10 to 20 stocks</li>
+<li><span class="pass">PASS</span> all cases pass</li>
+<li><span class="pass">PASS</span> multi agent beats minimal surface</li>
+<li><span class="pass">PASS</span> backtest available</li></ul>
+    </section>
+    <section>
+      <h2>Case Results</h2>
+      <table>
+        <thead><tr><th>Case</th><th>Task</th><th>Status</th><th>Output</th><th>Notes</th></tr></thead>
+        <tbody><tr><td>positive_ai_infrastructure</td><td>single</td><td><span class="pass">PASS</span></td><td>NVDA BUY</td><td>score=1.305; focus=market</td></tr><tr><td>negative_auto_demand</td><td>single</td><td><span class="pass">PASS</span></td><td>TSLA SELL</td><td>score=-0.7542; focus=market, negative</td></tr><tr><td>defensive_retail</td><td>single</td><td><span class="pass">PASS</span></td><td>WMT BUY</td><td>score=0.82; focus=evidence reviewed</td></tr><tr><td>regulatory_healthcare</td><td>single</td><td><span class="pass">PASS</span></td><td>UNH HOLD</td><td>score=-0.3792; focus=regulatory, margin</td></tr><tr><td>mixed_search_cloud</td><td>single</td><td><span class="pass">PASS</span></td><td>GOOGL HOLD</td><td>score=0.7117; focus=evidence reviewed</td></tr><tr><td>chip_margin_conflict</td><td>single</td><td><span class="pass">PASS</span></td><td>AMD HOLD</td><td>score=-0.2667; focus=product, margin</td></tr><tr><td>financial_credit_watch</td><td>single</td><td><span class="pass">PASS</span></td><td>JPM HOLD</td><td>score=0.6492; focus=credit</td></tr><tr><td>energy_commodity_mixed</td><td>single</td><td><span class="pass">PASS</span></td><td>XOM HOLD</td><td>score=-0.125; focus=commodity, capital, return</td></tr><tr><td>mega_cap_services</td><td>single</td><td><span class="pass">PASS</span></td><td>AAPL HOLD</td><td>score=0.5533; focus=regulatory</td></tr><tr><td>cloud_quality</td><td>single</td><td><span class="pass">PASS</span></td><td>MSFT BUY</td><td>score=1.1867; focus=growth</td></tr><tr><td>mega_cap_pool</td><td>screen</td><td><span class="pass">PASS</span></td><td>top=NVDA</td><td>score=1.305; candidates=6</td></tr><tr><td>cross_sector_pool</td><td>screen</td><td><span class="pass">PASS</span></td><td>top=NVDA</td><td>score=1.305; candidates=12</td></tr><tr><td>balanced_existing_portfolio</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=8.00%</td><td>warnings=2</td></tr><tr><td>overweight_high_risk</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=10.00%</td><td>warnings=7</td></tr><tr><td>cash_defensive_rotation</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=19.80%</td><td>warnings=6</td></tr></tbody>
+      </table>
+    </section>
+    <div class="two-col">
+      <section>
+        <h2>Baseline Summary</h2>
+        <table>
+          <tbody>
+            <tr><th>Multi-agent risk warnings</th><td>16</td></tr>
+            <tr><th>Technical action diversity</th><td>2</td></tr>
+            <tr><th>No-risk action diversity</th><td>3</td></tr>
+            <tr><th>Direct LLM used count</th><td>0</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section>
+        <h2>Equal-Weight Backtest</h2>
+        <table>
+          <tbody>
+            <tr><th>Observations</th><td>59</td></tr>
+            <tr><th>Cumulative return</th><td>4.77%</td></tr>
+            <tr><th>Annualized return</th><td>22.03%</td></tr>
+            <tr><th>Max drawdown</th><td>-1.37%</td></tr>
+            <tr><th>Sharpe ratio</th><td>2.44</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+    <section>
+      <h2>Stock Universe</h2>
+      <p class="muted">AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, XOM, UNH, TSLA, AMD, WMT</p>
+    </section>
+  </main>
+</body>
+</html>

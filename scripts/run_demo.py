@@ -12,6 +12,7 @@ if str(SRC) not in sys.path:
 
 from stock_agent.evaluator import (
     benchmark_to_markdown,
+    final_benchmark_to_html,
     final_benchmark_to_markdown,
     write_json_report,
 )
@@ -103,6 +104,10 @@ def main() -> int:
         markdown_path = output_dir / "final_benchmark_results.md"
         markdown_path.write_text(markdown, encoding="utf-8")
         print(f"Wrote {markdown_path}")
+        html = final_benchmark_to_html(payload)
+        html_path = output_dir / "final_dashboard.html"
+        html_path.write_text(html, encoding="utf-8")
+        print(f"Wrote {html_path}")
         results["final"] = payload
 
     print(json.dumps(results, ensure_ascii=False, indent=2))

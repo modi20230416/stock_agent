@@ -24,6 +24,7 @@
 - 核心代码：`src/stock_agent/`
 - 测试：`tests/test_pipeline.py`
 - final benchmark 摘要：`reports/final_benchmark_results.md`
+- final dashboard：`reports/final_dashboard.html`
 
 验证结果：
 
@@ -146,7 +147,7 @@ Final case suite 位于 `data/benchmark/cases.json`：
 - LLM 输出必须解析为结构化 JSON，失败时要 fallback。
 - 新增任务或数据字段时，同步更新 tests 和 benchmark cases。
 - 保持无第三方运行依赖，除非确实需要；如果增加依赖，要更新 `pyproject.toml` 和 `requirements.txt`。
-- 报告 JSON 可以本地生成但默认不提交；Markdown 摘要可以提交，方便老师和组员阅读。
+- 报告 JSON 可以本地生成但默认不提交；Markdown/HTML 摘要可以提交，方便老师和组员阅读。
 
 ## 推荐下一步
 

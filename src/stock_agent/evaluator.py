@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -122,9 +123,10 @@ def final_benchmark_to_markdown(payload: dict[str, Any]) -> str:
     )
     for item in payload["single_cases"]:
         decision = item["decision"]
+        focus = ", ".join(item.get("focus_hits") or ["evidence reviewed"])
         lines.append(
             f"| {item['case']['id']} | single | {'PASS' if item['passed'] else 'FAIL'} | "
-            f"{decision['ticker']} {decision['action']} score={decision['score']} |"
+            f"{decision['ticker']} {decision['action']} score={decision['score']}; focus={focus} |"
         )
     for item in payload["screen_cases"]:
         top = item["ranking"][0]
@@ -153,3 +155,260 @@ def final_benchmark_to_markdown(payload: dict[str, Any]) -> str:
         ]
     )
     return "\n".join(lines) + "\n"
+
+
+def final_benchmark_to_html(payload: dict[str, Any]) -> str:
+    suite = payload["suite"]
+    aggregate = payload["aggregate"]
+    criteria = payload["success_criteria"]
+    baseline = payload["baseline_comparison"]
+    backtest = baseline["equal_weight_backtest"]
+
+    case_rows: list[str] = []
+    for item in payload["single_cases"]:
+        decision = item["decision"]
+        focus = ", ".join(item.get("focus_hits") or ["evidence reviewed"])
+        case_rows.append(
+            _case_row(
+                item["case"]["id"],
+                "single",
+                item["passed"],
+                f"{decision['ticker']} {decision['action']}",
+                f"score={decision['score']}; focus={focus}",
+            )
+        )
+    for item in payload["screen_cases"]:
+        top = item["ranking"][0]
+        case_rows.append(
+            _case_row(
+                item["case"]["id"],
+                "screen",
+                item["passed"],
+                f"top={top['ticker']}",
+                f"score={top['score']}; candidates={len(item['ranking'])}",
+            )
+        )
+    for item in payload["rebalance_cases"]:
+        recommendation = item["recommendation"]
+        cash = recommendation["target_weights"].get("CASH", 0.0)
+        case_rows.append(
+            _case_row(
+                item["case"]["id"],
+                "rebalance",
+                item["passed"],
+                f"cash={cash:.2%}",
+                f"warnings={len(recommendation['warnings'])}",
+            )
+        )
+
+    criteria_items = "\n".join(
+        (
+            f'<li><span class="{_status_class(passed)}">'
+            f"{'PASS' if passed else 'FAIL'}</span> "
+            f"{escape(name.replace('_', ' '))}</li>"
+        )
+        for name, passed in criteria.items()
+    )
+    universe = ", ".join(suite["default_pool"])
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Agent Final Dashboard</title>
+  <style>
+    :root {{
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --line: #d9dee7;
+      --panel: #ffffff;
+      --pass: #176b3a;
+      --fail: #a33a30;
+      --accent: #1e5aa8;
+    }}
+    body {{
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.55 Arial, Helvetica, sans-serif;
+    }}
+    header {{
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      padding: 28px 36px 22px;
+    }}
+    main {{
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 18px 40px;
+    }}
+    h1, h2 {{
+      margin: 0;
+      line-height: 1.2;
+    }}
+    h1 {{
+      font-size: 28px;
+    }}
+    h2 {{
+      font-size: 18px;
+      margin-bottom: 14px;
+    }}
+    .subtitle {{
+      color: var(--muted);
+      margin-top: 8px;
+    }}
+    .grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }}
+    .metric, section {{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }}
+    .metric .label {{
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }}
+    .metric .value {{
+      display: block;
+      margin-top: 5px;
+      font-size: 24px;
+      font-weight: 700;
+    }}
+    section {{
+      margin-bottom: 18px;
+    }}
+    table {{
+      border-collapse: collapse;
+      width: 100%;
+      background: var(--panel);
+    }}
+    th, td {{
+      border-bottom: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+    }}
+    th {{
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }}
+    tr:last-child td {{
+      border-bottom: 0;
+    }}
+    .pass {{
+      color: var(--pass);
+      font-weight: 700;
+    }}
+    .fail {{
+      color: var(--fail);
+      font-weight: 700;
+    }}
+    .muted {{
+      color: var(--muted);
+    }}
+    .criteria {{
+      margin: 0;
+      padding-left: 20px;
+    }}
+    .two-col {{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }}
+    @media (max-width: 760px) {{
+      header {{
+        padding: 22px 18px 18px;
+      }}
+      .two-col {{
+        grid-template-columns: 1fr;
+      }}
+      table {{
+        font-size: 13px;
+      }}
+    }}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Stock Agent Final Dashboard</h1>
+    <div class="subtitle">Deterministic offline benchmark; not investment advice.</div>
+  </header>
+  <main>
+    <div class="grid">
+      <div class="metric"><span class="label">As of</span><span class="value">{escape(suite['as_of'])}</span></div>
+      <div class="metric"><span class="label">Pass rate</span><span class="value">{aggregate['pass_rate']:.0%}</span></div>
+      <div class="metric"><span class="label">Cases</span><span class="value">{aggregate['passed_cases']}/{aggregate['total_cases']}</span></div>
+      <div class="metric"><span class="label">Universe</span><span class="value">{len(suite['default_pool'])} stocks</span></div>
+    </div>
+    <section>
+      <h2>Final Criteria</h2>
+      <ul class="criteria">{criteria_items}</ul>
+    </section>
+    <section>
+      <h2>Case Results</h2>
+      <table>
+        <thead><tr><th>Case</th><th>Task</th><th>Status</th><th>Output</th><th>Notes</th></tr></thead>
+        <tbody>{''.join(case_rows)}</tbody>
+      </table>
+    </section>
+    <div class="two-col">
+      <section>
+        <h2>Baseline Summary</h2>
+        <table>
+          <tbody>
+            <tr><th>Multi-agent risk warnings</th><td>{baseline['multi_agent_with_risk']['risk_warning_count']}</td></tr>
+            <tr><th>Technical action diversity</th><td>{baseline['technical_rule_baseline']['action_diversity']}</td></tr>
+            <tr><th>No-risk action diversity</th><td>{baseline['no_risk_ensemble_baseline']['action_diversity']}</td></tr>
+            <tr><th>Direct LLM used count</th><td>{baseline['direct_llm_baseline']['used_llm_count']}</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section>
+        <h2>Equal-Weight Backtest</h2>
+        <table>
+          <tbody>
+            <tr><th>Observations</th><td>{backtest['observations']}</td></tr>
+            <tr><th>Cumulative return</th><td>{backtest['cumulative_return']:.2%}</td></tr>
+            <tr><th>Annualized return</th><td>{backtest['annualized_return']:.2%}</td></tr>
+            <tr><th>Max drawdown</th><td>{backtest['max_drawdown']:.2%}</td></tr>
+            <tr><th>Sharpe ratio</th><td>{backtest['sharpe_ratio']:.2f}</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+    <section>
+      <h2>Stock Universe</h2>
+      <p class="muted">{escape(universe)}</p>
+    </section>
+  </main>
+</body>
+</html>
+"""
+
+
+def _case_row(case_id: str, task: str, passed: bool, output: str, notes: str) -> str:
+    status = "PASS" if passed else "FAIL"
+    return (
+        "<tr>"
+        f"<td>{escape(case_id)}</td>"
+        f"<td>{escape(task)}</td>"
+        f'<td><span class="{_status_class(passed)}">{status}</span></td>'
+        f"<td>{escape(output)}</td>"
+        f"<td>{escape(notes)}</td>"
+        "</tr>"
+    )
+
+
+def _status_class(passed: bool) -> str:
+    return "pass" if passed else "fail"

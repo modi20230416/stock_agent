@@ -14,7 +14,7 @@
 2. Agent 层：分别负责市场信息、新闻情绪、基本面分析、风险管理和最终决策。
 3. LLM 复核层：可选调用 OpenRouter，对结构化 Agent 输出进行保守复核。
 4. 评估层：运行 fixed benchmark cases、baseline 对比和 equal-weight backtest。
-5. 报告层：输出 JSON 详情和 Markdown 摘要。
+5. 报告层：输出 JSON 详情、Markdown 摘要和静态 HTML dashboard。
 
 核心入口是 `StockDecisionSystem`。它组合多个 Agent，并提供 `analyze_single`、`screen_candidates`、`rebalance`、`benchmark` 和 `benchmark_cases` 五类接口。
 
@@ -97,7 +97,7 @@ Final benchmark 的成功标准包括：
 - Equal-weight cumulative return：4.77%。
 - Equal-weight max drawdown：-1.37%。
 
-详细摘要见 `reports/final_benchmark_results.md`。
+详细摘要见 `reports/final_benchmark_results.md`，静态展示页见 `reports/final_dashboard.html`。
 
 ## 7. 项目贡献
 
@@ -107,7 +107,7 @@ Final benchmark 的成功标准包括：
 - 从单次 demo 扩展到 15 个固定 benchmark cases。
 - 增加新闻事件类型、市场回撤、跨 Agent 冲突检测。
 - 增加 direct LLM baseline 和 equal-weight backtest。
-- 增加 final benchmark runner 和 Markdown 报告。
+- 增加 final benchmark runner、Markdown 报告和静态 HTML dashboard。
 - 增加 final case suite 单元测试。
 - 更新 README 和 AI 协作上下文，支持多人继续开发。
 

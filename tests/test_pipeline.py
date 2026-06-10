@@ -10,6 +10,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from stock_agent.evaluator import final_benchmark_to_html, final_benchmark_to_markdown
 from stock_agent.pipeline import StockDecisionSystem
 
 
@@ -65,6 +66,11 @@ class StockDecisionSystemTest(unittest.TestCase):
             0,
         )
         self.assertIn("direct_llm_baseline", benchmark["baseline_comparison"])
+        markdown = final_benchmark_to_markdown(benchmark)
+        html = final_benchmark_to_html(benchmark)
+        self.assertIn("Pass rate: 15/15", markdown)
+        self.assertIn("Stock Agent Final Dashboard", html)
+        self.assertIn("positive_ai_infrastructure", html)
 
     def test_llm_off_disables_direct_llm_baseline(self) -> None:
         original_key = os.environ.get("OPENROUTER_API_KEY")

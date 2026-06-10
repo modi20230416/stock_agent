@@ -15,16 +15,16 @@
 
 | Case | Task | Result | Key output |
 | --- | --- | --- | --- |
-| positive_ai_infrastructure | single | PASS | NVDA BUY score=1.305 |
-| negative_auto_demand | single | PASS | TSLA SELL score=-0.7542 |
-| defensive_retail | single | PASS | WMT BUY score=0.82 |
-| regulatory_healthcare | single | PASS | UNH HOLD score=-0.3792 |
-| mixed_search_cloud | single | PASS | GOOGL HOLD score=0.7117 |
-| chip_margin_conflict | single | PASS | AMD HOLD score=-0.2667 |
-| financial_credit_watch | single | PASS | JPM HOLD score=0.6492 |
-| energy_commodity_mixed | single | PASS | XOM HOLD score=-0.125 |
-| mega_cap_services | single | PASS | AAPL HOLD score=0.5533 |
-| cloud_quality | single | PASS | MSFT BUY score=1.1867 |
+| positive_ai_infrastructure | single | PASS | NVDA BUY score=1.305; focus=market |
+| negative_auto_demand | single | PASS | TSLA SELL score=-0.7542; focus=market, negative |
+| defensive_retail | single | PASS | WMT BUY score=0.82; focus=evidence reviewed |
+| regulatory_healthcare | single | PASS | UNH HOLD score=-0.3792; focus=regulatory, margin |
+| mixed_search_cloud | single | PASS | GOOGL HOLD score=0.7117; focus=evidence reviewed |
+| chip_margin_conflict | single | PASS | AMD HOLD score=-0.2667; focus=product, margin |
+| financial_credit_watch | single | PASS | JPM HOLD score=0.6492; focus=credit |
+| energy_commodity_mixed | single | PASS | XOM HOLD score=-0.125; focus=commodity, capital, return |
+| mega_cap_services | single | PASS | AAPL HOLD score=0.5533; focus=regulatory |
+| cloud_quality | single | PASS | MSFT BUY score=1.1867; focus=growth |
 | mega_cap_pool | screen | PASS | top=NVDA score=1.305 |
 | cross_sector_pool | screen | PASS | top=NVDA score=1.305 |
 | balanced_existing_portfolio | rebalance | PASS | cash=8.00%, warnings=2 |
