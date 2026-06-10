@@ -1,0 +1,37 @@
+ticker,date,headline,summary,sentiment,event_type
+AAPL,2026-04-07,Apple suppliers report stable demand,Channel checks suggest modestly improving device component orders.,0.25,demand
+AAPL,2026-04-24,Services revenue outlook improves,Analysts raise estimates for recurring services revenue.,0.45,estimate_revision
+AAPL,2026-05-15,Regulatory review weighs on app store policy,Potential policy changes may pressure service margins.,-0.35,regulatory
+MSFT,2026-04-08,Azure demand remains resilient,Enterprise cloud spending continues to support growth.,0.55,demand
+MSFT,2026-05-01,AI infrastructure spending increases,Capex is high but management frames it as demand-backed expansion.,0.2,capex
+MSFT,2026-05-19,Security product bundle gains customers,New enterprise contracts add recurring revenue visibility.,0.4,contract
+NVDA,2026-04-10,Data center demand remains strong,Hyperscale customers continue ordering AI accelerators.,0.7,demand
+NVDA,2026-05-03,Export control discussion creates uncertainty,Potential restrictions could affect selected international sales.,-0.3,regulatory
+NVDA,2026-05-20,Analysts lift AI chip revenue estimates,Consensus estimates rise after channel checks.,0.65,estimate_revision
+AMZN,2026-04-09,Cloud margins improve,AWS efficiency initiatives support operating margin.,0.42,margin
+AMZN,2026-05-05,Retail fulfillment costs ease,Lower logistics pressure improves profitability outlook.,0.35,cost
+AMZN,2026-05-18,Antitrust review remains an overhang,Regulatory scrutiny could limit aggressive bundling.,-0.25,regulatory
+GOOGL,2026-04-11,Search ad growth is steady,Core advertising demand remains stable.,0.2,demand
+GOOGL,2026-05-02,AI product rollout receives mixed feedback,User adoption is promising but monetization timing is unclear.,0.05,product
+GOOGL,2026-05-17,Cloud contract pipeline improves,Enterprise cloud wins support medium-term growth.,0.3,contract
+META,2026-04-12,Advertising engagement improves,Reels and AI targeting lift ad conversion metrics.,0.55,demand
+META,2026-05-06,Reality Labs spending remains high,Long-horizon investment continues to weigh on expenses.,-0.2,capex
+META,2026-05-21,Analysts raise operating margin forecast,Cost control and ad demand improve consensus estimates.,0.5,estimate_revision
+JPM,2026-04-15,Loan growth stays moderate,Corporate loan demand is stable but not accelerating.,0.1,credit
+JPM,2026-05-08,Credit card delinquencies edge higher,Consumer credit normalization raises monitoring needs.,-0.3,credit
+JPM,2026-05-16,Net interest income guidance unchanged,Management keeps annual outlook broadly intact.,0.15,guidance
+XOM,2026-04-16,Crude prices soften,Energy prices decline after inventory data.,-0.3,commodity
+XOM,2026-05-09,Refining margins stabilize,Downstream margins recover from recent weakness.,0.2,margin
+XOM,2026-05-20,Capital return plan remains steady,Buybacks and dividends remain a support factor.,0.25,capital_return
+UNH,2026-04-17,Medical cost trend pressure continues,Utilization remains above prior expectations.,-0.45,cost
+UNH,2026-05-07,Regulatory review adds uncertainty,Managed care reimbursement rules face scrutiny.,-0.5,regulatory
+UNH,2026-05-22,Membership growth is slower,Management cites slower enrollment in selected plans.,-0.35,guidance
+TSLA,2026-04-18,Price cuts expand in key markets,Lower prices may pressure automotive gross margin.,-0.55,pricing
+TSLA,2026-05-10,Recall notice affects selected vehicles,Software-related recall creates near-term headline risk.,-0.45,product
+TSLA,2026-05-19,Delivery estimates revised lower,Analysts cite demand uncertainty and rising competition.,-0.6,estimate_revision
+AMD,2026-04-19,AI accelerator roadmap gets attention,New products could improve positioning later in the year.,0.35,product
+AMD,2026-05-12,PC demand recovery is uneven,Client segment demand remains mixed across channels.,-0.15,demand
+AMD,2026-05-20,Margin guidance disappoints,Investors focus on lower-than-expected near-term gross margin.,-0.45,guidance
+WMT,2026-04-20,Grocery traffic remains resilient,Consumer staples demand supports comparable sales.,0.35,demand
+WMT,2026-05-11,E-commerce unit improves contribution margin,Fulfillment efficiency offsets delivery investments.,0.3,margin
+WMT,2026-05-21,Consumer trade-down trend supports sales,Value positioning remains a defensive support.,0.25,macro

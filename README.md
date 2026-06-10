@@ -1,114 +1,159 @@
 # 面向日频模拟交易的多 Agent 股票决策支持系统
 
-这是课程项目的中期 minimal version。目标不是真实自动交易，而是在离线、可复现的小型样例上跑通 proposal 中的关键组件，证明后续四周继续扩展为真实数据 + 更完整 benchmark 是可行的。
+这是一个课程项目原型，目标是构建可复现、可解释、可评估的多 Agent 股票决策支持系统。系统不会连接真实券商账户，也不构成投资建议；它用于在离线数据和可选 LLM 复核条件下完成三类任务：单股分析、候选股票筛选、小型组合调仓。
 
-## 当前已实现内容
+当前版本已经从中期 minimal version 推进到 final project prototype：
 
-- 多 Agent 流程：市场信息、新闻情绪、基本面、风险管理、最终决策。
-- OpenRouter LLM 复核：有 `OPENROUTER_API_KEY` 时调用 `openrouter/free`，由免费模型对结构化 Agent 输出进行最终审阅。
-- 三类任务：单股票分析、候选股票筛选、小型股票池调仓。
-- baseline 对比：简单技术指标规则、无风险管理的 ensemble。
-- benchmark 输出：成功标准检查、风险提示数量、候选区分度、调仓约束检查。
-- 离线样例数据：`AAPL/MSFT/TSLA/NVDA` 的价格、新闻、基本面和组合约束。
-- 当前进度记录：`docs/PROGRESS.md`。
-- 最终版本路线图：`docs/FINAL_ROADMAP.md`。
+- 数据集：`data/processed/` 提供 12 支股票、60 个交易日的离线 OHLCV、新闻事件、基本面和组合约束数据。
+- Benchmark：`data/benchmark/cases.json` 固定 15 个用例，包括 10 个单股分析、2 个股票池筛选、3 个调仓场景。
+- Agent：市场信息、新闻情绪、基本面、风险管理、决策 Agent，以及可选 OpenRouter LLM 复核 Agent。
+- Baseline：技术规则 baseline、无风险管理 ensemble baseline、direct LLM/single-agent baseline。
+- 回测指标：equal-weight 辅助回测，输出累计收益、年化收益、最大回撤、Sharpe ratio。
+- 报告：运行后生成 JSON 详情和 Markdown 摘要，其中 final benchmark 当前 15/15 通过。
 
 ## 快速运行
 
-建议先初始化项目虚拟环境。Windows PowerShell 中运行：
+Windows PowerShell：
 
 ```powershell
 .\scripts\setup_env.ps1
 ```
 
-这个脚本会创建 `.venv`、以 editable 方式安装当前项目，并运行单元测试。
-
-也可以手动运行：
+如果想手动初始化：
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
 .\.venv\Scripts\python.exe -m unittest discover -s tests
-.\.venv\Scripts\python.exe scripts\run_demo.py --task all --llm auto
 ```
 
-如果要启用真实 LLM 调用，先在当前 PowerShell 会话设置 OpenRouter key：
+运行最终版本 benchmark：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_demo.py --task final --llm off
+```
+
+运行全部任务并生成所有报告：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_demo.py --task all --llm off
+```
+
+常用任务：
+
+```powershell
+# 单股分析
+.\.venv\Scripts\python.exe scripts\run_demo.py --task single --ticker NVDA --llm off
+
+# 候选池筛选
+.\.venv\Scripts\python.exe scripts\run_demo.py --task screen --tickers AAPL,MSFT,NVDA,TSLA,AMD,WMT --llm off
+
+# 组合调仓
+.\.venv\Scripts\python.exe scripts\run_demo.py --task rebalance --llm off
+
+# baseline + backtest 对比
+.\.venv\Scripts\python.exe scripts\run_demo.py --task benchmark --llm off
+```
+
+## OpenRouter API
+
+没有 API key 时，系统会自动使用离线规则结果，保证测试和 benchmark 可复现。要启用真实 LLM 调用，在 PowerShell 里设置：
 
 ```powershell
 $env:OPENROUTER_API_KEY="你的 OpenRouter key"
-python scripts\run_demo.py --task single --ticker AAPL --llm required
+$env:OPENROUTER_MODEL="openrouter/free"
+.\.venv\Scripts\python.exe scripts\run_demo.py --task benchmark --llm required
 ```
 
-默认模型是 `openrouter/free`。如需指定某个免费模型，可设置：
+`--llm auto`：有 key 就调用 OpenRouter，没有 key 就 fallback。
+`--llm required`：强制调用 OpenRouter，调用失败会报错。
+`--llm off`：完全离线，适合测试和复现。
 
-```powershell
-$env:OPENROUTER_MODEL="meta-llama/llama-3.2-3b-instruct:free"
-```
+不要把真实 API key 写进代码或提交到 GitHub。
 
-`--llm auto` 会在有 key 时调用 LLM、没有 key 时回退到规则版；`--llm required` 会在 LLM 调用失败时直接报错，适合中期演示前验证“确实调用了模型”；`--llm off` 用于离线测试。
+## 输出文件
 
-运行后会生成：
+运行 `--task all` 后会生成：
 
 - `reports/single_analysis.json`
 - `reports/candidate_screening.json`
 - `reports/rebalance.json`
 - `reports/benchmark_results.json`
 - `reports/benchmark_results.md`
+- `reports/final_benchmark_results.json`
+- `reports/final_benchmark_results.md`
 
-## 常用命令
-
-```powershell
-# 单股票分析
-.\.venv\Scripts\python.exe scripts\run_demo.py --task single --ticker AAPL --as-of 2026-05-19 --llm auto
-
-# 候选股票筛选
-.\.venv\Scripts\python.exe scripts\run_demo.py --task screen --tickers AAPL,MSFT,TSLA,NVDA
-
-# 调仓建议
-.\.venv\Scripts\python.exe scripts\run_demo.py --task rebalance --tickers AAPL,MSFT,TSLA,NVDA
-
-# benchmark 对比
-.\.venv\Scripts\python.exe scripts\run_demo.py --task benchmark --llm auto
-```
+仓库默认提交 Markdown 摘要，JSON 详情作为本地生成产物保留在 `.gitignore` 中。
 
 ## PyCharm 运行
 
-项目已包含 PyCharm 配置：
-
-- Interpreter: `.venv\Scripts\python.exe`
-- Run configuration: `Run Demo All`
-- Test configuration: `Run Unit Tests`
-
-如果 PyCharm 已经打开过项目，请在 IDE 中点击 `File -> Reload All from Disk`，或关闭后重新打开 `C:\Users\modi2023\Desktop\大模型project`。然后选择右上角的 `Run Demo All` 运行。
-
-如果右下角或运行配置显示 `No interpreter`，关闭 PyCharm 后重新打开项目。解释器已注册为：
+建议直接打开项目目录：
 
 ```text
-Python 3.11 (stock-agent-course-project)
+C:\Users\modi2023\Desktop\大模型project
+```
+
+解释器选择：
+
+```text
 C:\Users\modi2023\Desktop\大模型project\.venv\Scripts\python.exe
 ```
 
-仍未出现时，在 `Settings -> Project -> Python Interpreter -> Add Interpreter -> Existing` 手动选择上面的 `python.exe`。
+如果 PyCharm 显示 `No interpreter`，进入：
+
+```text
+Settings -> Project -> Python Interpreter -> Add Interpreter -> Existing
+```
+
+然后选择上面的 `python.exe`。如果项目树又变成 Desktop，关闭 PyCharm 后从 `File -> Open` 重新打开 `大模型project` 目录。
 
 ## 项目结构
 
 ```text
-data/sample/              离线样例数据和组合约束
-docs/                     中期报告草稿、AI 协作上下文、后续计划
-reports/                  demo 和 benchmark 输出
-scripts/run_demo.py       命令行入口
-src/stock_agent/          多 Agent 原型实现
-tests/                    单元测试
+data/sample/              中期 minimal sample 数据
+data/processed/           final version 离线处理后数据
+data/benchmark/           固定 benchmark case suite
+docs/                     项目计划、进度、AI 协作上下文、报告草稿
+reports/                  benchmark Markdown 摘要和本地 JSON 详情
+scripts/generate_final_data.py  生成 final 离线数据集
+scripts/run_demo.py       CLI 运行入口
+src/stock_agent/          多 Agent 系统实现
+tests/                    单元测试和 final benchmark 测试
 ```
 
-## 中期交付判断
+## 当前验证结果
 
-这个版本已经覆盖老师要求的“尝试完成 minimal version 或至少实现关键组件”：
+已通过：
 
-- 可运行：`run_demo.py` 可以端到端输出结果。
-- 可解释：每个最终建议都保留各 Agent 的中间结论、证据和风险提示。
-- LLM Agent：有 OpenRouter key 时，系统会把规则 Agent 的结构化结果交给免费 LLM 做保守复核，并记录实际使用的模型名。
-- 可验证：`tests/` 和 `reports/benchmark_results.md` 检查三类任务是否满足预定义成功标准。
-- 可扩展：数据加载层已和 Agent 逻辑分离，后续可以替换为 Kaggle/Alpha Vantage/SEC 数据。
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+.\.venv\Scripts\python.exe scripts\run_demo.py --task all --llm off
+```
 
-本系统只用于课程研究和模拟交易，不构成投资建议。
+当前结果：
+
+- 单元测试：6/6 通过。
+- Final benchmark：15/15 cases 通过。
+- 股票池规模：12 支，满足 10-20 支股票要求。
+- 风控调仓：3 个 portfolio cases 均满足持仓、现金和交易约束。
+- Equal-weight backtest：已输出累计收益、年化收益、最大回撤和 Sharpe ratio。
+
+## 多人协作
+
+推荐流程：
+
+```powershell
+git clone https://github.com/modi20230416/stock_agent.git
+cd stock_agent
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+```
+
+组员协作时建议每个人从 `main` 新建自己的分支：
+
+```powershell
+git checkout -b feature/your-task-name
+```
+
+完成后提交并 push，再在 GitHub 上开 Pull Request。不要提交 `.env`、真实 API key、`.venv` 或大型本地 JSON 报告。

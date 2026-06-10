@@ -23,6 +23,7 @@ class NewsItem:
     headline: str
     summary: str
     sentiment: float
+    event_type: str = "general"
 
 
 @dataclass(frozen=True)
@@ -99,4 +100,26 @@ class PortfolioRecommendation:
             "trades": {key: round(value, 4) for key, value in sorted(self.trades.items())},
             "warnings": self.warnings,
             "decisions": [decision.to_dict() for decision in self.decisions],
+        }
+
+
+@dataclass(frozen=True)
+class BenchmarkCase:
+    case_id: str
+    task: str
+    as_of: date
+    tickers: list[str]
+    ticker: str | None = None
+    portfolio: dict[str, Any] | None = None
+    expected_focus: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.case_id,
+            "task": self.task,
+            "as_of": self.as_of.isoformat(),
+            "tickers": self.tickers,
+            "ticker": self.ticker,
+            "portfolio": self.portfolio,
+            "expected_focus": self.expected_focus,
         }

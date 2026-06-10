@@ -12,8 +12,14 @@ from .agents import (
     NewsSentimentAgent,
     RiskManagementAgent,
 )
-from .baselines import NoRiskEnsembleBaseline, TechnicalRuleBaseline, action_diversity
-from .data_loader import load_sample_dataset, parse_date
+from .backtest import equal_weight_backtest
+from .baselines import (
+    DirectLLMBaseline,
+    NoRiskEnsembleBaseline,
+    TechnicalRuleBaseline,
+    action_diversity,
+)
+from .data_loader import load_benchmark_cases, load_sample_dataset, parse_date
 from .models import Decision, FundamentalRecord, NewsItem, PortfolioRecommendation, PriceBar
 
 
@@ -52,6 +58,15 @@ class StockDecisionSystem:
     def current_weight(self, ticker: str) -> float:
         positions = self.portfolio.get("positions", {})
         return float(positions.get(ticker, 0.0))
+
+    def with_portfolio(self, portfolio: dict[str, Any]) -> "StockDecisionSystem":
+        return StockDecisionSystem(
+            self.prices,
+            self.news,
+            self.fundamentals,
+            portfolio,
+            use_llm=self.use_llm,
+        )
 
     def analyze_single(self, ticker: str, as_of: str | date) -> Decision:
         parsed_as_of = parse_date(as_of) if isinstance(as_of, str) else as_of
@@ -187,18 +202,30 @@ class StockDecisionSystem:
 
     def benchmark(self, tickers: list[str] | None, as_of: str | date) -> dict[str, Any]:
         candidate_tickers = [ticker.upper() for ticker in (tickers or self.tickers())]
+        parsed_as_of = parse_date(as_of) if isinstance(as_of, str) else as_of
         decisions = [self.analyze_single(ticker, as_of) for ticker in candidate_tickers]
         rebalance = self.rebalance(candidate_tickers, as_of)
         technical = TechnicalRuleBaseline()
         no_risk = NoRiskEnsembleBaseline()
+        direct_llm = DirectLLMBaseline(enabled=self.use_llm != "off")
         technical_outputs = [
-            technical.decide(ticker, self.prices, parse_date(as_of) if isinstance(as_of, str) else as_of)
+            technical.decide(ticker, self.prices, parsed_as_of)
             for ticker in candidate_tickers
         ]
         no_risk_outputs = [
             no_risk.decide(
                 ticker,
-                parse_date(as_of) if isinstance(as_of, str) else as_of,
+                parsed_as_of,
+                self.prices,
+                self.news,
+                self.fundamentals,
+            )
+            for ticker in candidate_tickers
+        ]
+        direct_outputs = [
+            direct_llm.decide(
+                ticker,
+                parsed_as_of,
                 self.prices,
                 self.news,
                 self.fundamentals,
@@ -206,6 +233,7 @@ class StockDecisionSystem:
             for ticker in candidate_tickers
         ]
         violations = self._constraint_violations(rebalance.target_weights)
+        backtest = equal_weight_backtest(self.prices, candidate_tickers)
         return {
             "as_of": as_of if isinstance(as_of, str) else as_of.isoformat(),
             "tickers": candidate_tickers,
@@ -247,7 +275,118 @@ class StockDecisionSystem:
                 "risk_warning_count": 0,
                 "action_diversity": action_diversity(no_risk_outputs),
             },
+            "direct_llm_baseline": {
+                "actions": {item["ticker"]: item["action"] for item in direct_outputs},
+                "scores": {item["ticker"]: item["score"] for item in direct_outputs},
+                "used_llm_count": sum(1 for item in direct_outputs if item.get("used_llm")),
+                "action_diversity": action_diversity(direct_outputs),
+            },
+            "equal_weight_backtest": backtest.to_dict(),
             "rebalance": rebalance.to_dict(),
+        }
+
+    def benchmark_cases(
+        self,
+        cases_file: str | Path,
+        data_dir: str | Path | None = None,
+    ) -> dict[str, Any]:
+        suite = load_benchmark_cases(cases_file, data_dir=data_dir)
+        cases = suite["cases"]
+        default_pool = suite["default_pool"] or self.tickers()
+        as_of = suite["as_of"]
+
+        single_results = []
+        for case in cases["single"]:
+            if case.ticker is None:
+                continue
+            decision = self.analyze_single(case.ticker, case.as_of)
+            expected_focus = (case.expected_focus or "").lower()
+            evidence_text = " ".join(
+                decision.rationale
+                + decision.risk_warnings
+                + [
+                    result.summary
+                    for result in decision.agent_results.values()
+                ]
+            ).lower()
+            focus_tokens = [
+                token.strip(".,;:()")
+                for token in expected_focus.split()
+                if len(token.strip(".,;:()")) >= 5
+            ]
+            focus_hits = [token for token in focus_tokens if token in evidence_text]
+            single_results.append(
+                {
+                    "case": case.to_dict(),
+                    "decision": decision.to_dict(),
+                    "focus_hits": focus_hits,
+                    "passed": bool(decision.action and decision.rationale and decision.risk_warnings)
+                    and {"market", "news", "fundamental", "risk"}.issubset(decision.agent_results),
+                }
+            )
+
+        screen_results = []
+        for case in cases["screen"]:
+            ranking = self.screen_candidates(case.tickers, case.as_of)
+            score_diversity = len({item["score"] for item in ranking})
+            action_count = len({item["action"] for item in ranking})
+            screen_results.append(
+                {
+                    "case": case.to_dict(),
+                    "ranking": ranking,
+                    "passed": len(ranking) == len(case.tickers)
+                    and (score_diversity >= 2 or action_count >= 2),
+                }
+            )
+
+        rebalance_results = []
+        for case in cases["rebalance"]:
+            case_system = self.with_portfolio(case.portfolio) if case.portfolio else self
+            recommendation = case_system.rebalance(case.tickers, case.as_of)
+            violations = case_system._constraint_violations(recommendation.target_weights)
+            rebalance_results.append(
+                {
+                    "case": case.to_dict(),
+                    "recommendation": recommendation.to_dict(),
+                    "constraint_violations": violations,
+                    "passed": not violations,
+                }
+            )
+
+        all_case_results = single_results + screen_results + rebalance_results
+        passed_cases = sum(1 for item in all_case_results if item["passed"])
+        total_cases = len(all_case_results)
+        baseline = self.benchmark(default_pool, as_of)
+        return {
+            "suite": {
+                "as_of": as_of,
+                "default_pool": default_pool,
+                "case_counts": {
+                    "single": len(single_results),
+                    "screen": len(screen_results),
+                    "rebalance": len(rebalance_results),
+                    "total": total_cases,
+                },
+            },
+            "aggregate": {
+                "passed_cases": passed_cases,
+                "total_cases": total_cases,
+                "pass_rate": round(passed_cases / total_cases, 4) if total_cases else 0.0,
+            },
+            "success_criteria": {
+                "case_suite_has_10_to_20_stocks": 10 <= len(default_pool) <= 20,
+                "all_cases_pass": passed_cases == total_cases and total_cases > 0,
+                "multi_agent_beats_minimal_surface": (
+                    baseline["multi_agent_with_risk"]["risk_warning_count"]
+                    > baseline["technical_rule_baseline"]["risk_warning_count"]
+                    and not baseline["multi_agent_with_risk"]["constraint_violations"]
+                ),
+                "backtest_available": baseline["equal_weight_backtest"]["observations"] > 0,
+            },
+            "single_cases": single_results,
+            "screen_cases": screen_results,
+            "rebalance_cases": rebalance_results,
+            "baseline_comparison": baseline,
         }
 
     def _constraint_violations(self, weights: dict[str, float]) -> list[str]:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -48,6 +49,34 @@ class StockDecisionSystemTest(unittest.TestCase):
         self.assertEqual(benchmark["llm"]["mode"], "off")
         self.assertTrue(benchmark["success_criteria"]["single_stock_has_action_reason_and_risk"])
         self.assertTrue(benchmark["success_criteria"]["rebalance_respects_constraints"])
+
+    def test_final_case_suite_runs(self) -> None:
+        system = StockDecisionSystem.from_data_dir(ROOT / "data" / "processed", use_llm="off")
+        benchmark = system.benchmark_cases(
+            ROOT / "data" / "benchmark" / "cases.json",
+            data_dir=ROOT / "data" / "processed",
+        )
+        self.assertEqual(benchmark["suite"]["case_counts"]["total"], 15)
+        self.assertEqual(benchmark["aggregate"]["passed_cases"], 15)
+        self.assertTrue(benchmark["success_criteria"]["case_suite_has_10_to_20_stocks"])
+        self.assertTrue(benchmark["success_criteria"]["all_cases_pass"])
+        self.assertGreater(
+            benchmark["baseline_comparison"]["equal_weight_backtest"]["observations"],
+            0,
+        )
+        self.assertIn("direct_llm_baseline", benchmark["baseline_comparison"])
+
+    def test_llm_off_disables_direct_llm_baseline(self) -> None:
+        original_key = os.environ.get("OPENROUTER_API_KEY")
+        os.environ["OPENROUTER_API_KEY"] = "fake-key-should-not-be-used"
+        try:
+            benchmark = self.system.benchmark(["AAPL", "MSFT", "TSLA", "NVDA"], "2026-05-19")
+        finally:
+            if original_key is None:
+                os.environ.pop("OPENROUTER_API_KEY", None)
+            else:
+                os.environ["OPENROUTER_API_KEY"] = original_key
+        self.assertEqual(benchmark["direct_llm_baseline"]["used_llm_count"], 0)
 
 
 if __name__ == "__main__":

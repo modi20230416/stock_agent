@@ -14,4 +14,4 @@ venv/
 *.pdf
 *.url
 reports/*.json
-reports/*.md
+!reports/*.md

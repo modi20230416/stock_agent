@@ -5,7 +5,7 @@ import json
 from datetime import date
 from pathlib import Path
 
-from .models import FundamentalRecord, NewsItem, PriceBar
+from .models import BenchmarkCase, FundamentalRecord, NewsItem, PriceBar
 
 
 def parse_date(value: str) -> date:
@@ -39,6 +39,7 @@ def load_news(path: str | Path) -> list[NewsItem]:
                 headline=row["headline"],
                 summary=row["summary"],
                 sentiment=float(row["sentiment"]),
+                event_type=row.get("event_type", "general") or "general",
             )
             for row in reader
         ]
@@ -67,6 +68,57 @@ def load_portfolio(path: str | Path) -> dict:
         return json.load(handle)
 
 
+def load_benchmark_cases(path: str | Path, data_dir: str | Path | None = None) -> dict:
+    root = Path(data_dir) if data_dir is not None else Path(path).parent
+    with Path(path).open(encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    cases: dict[str, list[BenchmarkCase]] = {
+        "single": [],
+        "screen": [],
+        "rebalance": [],
+    }
+    for item in payload.get("single_cases", []):
+        ticker = item["ticker"].upper()
+        cases["single"].append(
+            BenchmarkCase(
+                case_id=item["id"],
+                task="single",
+                as_of=parse_date(item.get("as_of", payload["as_of"])),
+                tickers=[ticker],
+                ticker=ticker,
+                expected_focus=item.get("expected_focus"),
+            )
+        )
+    for item in payload.get("screen_cases", []):
+        cases["screen"].append(
+            BenchmarkCase(
+                case_id=item["id"],
+                task="screen",
+                as_of=parse_date(item.get("as_of", payload["as_of"])),
+                tickers=[ticker.upper() for ticker in item["tickers"]],
+            )
+        )
+    for item in payload.get("rebalance_cases", []):
+        portfolio = item.get("portfolio")
+        if isinstance(portfolio, str):
+            portfolio = load_portfolio(root / portfolio)
+        cases["rebalance"].append(
+            BenchmarkCase(
+                case_id=item["id"],
+                task="rebalance",
+                as_of=parse_date(item.get("as_of", payload["as_of"])),
+                tickers=[ticker.upper() for ticker in item["tickers"]],
+                portfolio=portfolio,
+            )
+        )
+    return {
+        "as_of": payload.get("as_of"),
+        "default_pool": [ticker.upper() for ticker in payload.get("default_pool", [])],
+        "cases": cases,
+    }
+
+
 def load_sample_dataset(data_dir: str | Path) -> tuple[list[PriceBar], list[NewsItem], list[FundamentalRecord], dict]:
     root = Path(data_dir)
     return (
@@ -75,3 +127,9 @@ def load_sample_dataset(data_dir: str | Path) -> tuple[list[PriceBar], list[News
         load_fundamentals(root / "fundamentals.csv"),
         load_portfolio(root / "portfolio.json"),
     )
+
+
+def load_dataset(
+    data_dir: str | Path,
+) -> tuple[list[PriceBar], list[NewsItem], list[FundamentalRecord], dict]:
+    return load_sample_dataset(data_dir)

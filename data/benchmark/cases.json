@@ -1,0 +1,190 @@
+{
+  "as_of": "2026-05-22",
+  "default_pool": [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "AMZN",
+    "GOOGL",
+    "META",
+    "JPM",
+    "XOM",
+    "UNH",
+    "TSLA",
+    "AMD",
+    "WMT"
+  ],
+  "single_cases": [
+    {
+      "id": "positive_ai_infrastructure",
+      "ticker": "NVDA",
+      "as_of": "2026-05-22",
+      "expected_focus": "strong market, news, and fundamentals"
+    },
+    {
+      "id": "negative_auto_demand",
+      "ticker": "TSLA",
+      "as_of": "2026-05-22",
+      "expected_focus": "weak market, negative news, weak fundamentals"
+    },
+    {
+      "id": "defensive_retail",
+      "ticker": "WMT",
+      "as_of": "2026-05-22",
+      "expected_focus": "defensive steady profile"
+    },
+    {
+      "id": "regulatory_healthcare",
+      "ticker": "UNH",
+      "as_of": "2026-05-22",
+      "expected_focus": "negative regulatory and margin pressure"
+    },
+    {
+      "id": "mixed_search_cloud",
+      "ticker": "GOOGL",
+      "as_of": "2026-05-22",
+      "expected_focus": "mixed but stable profile"
+    },
+    {
+      "id": "chip_margin_conflict",
+      "ticker": "AMD",
+      "as_of": "2026-05-22",
+      "expected_focus": "conflicting product optimism and margin pressure"
+    },
+    {
+      "id": "financial_credit_watch",
+      "ticker": "JPM",
+      "as_of": "2026-05-22",
+      "expected_focus": "credit risk monitoring"
+    },
+    {
+      "id": "energy_commodity_mixed",
+      "ticker": "XOM",
+      "as_of": "2026-05-22",
+      "expected_focus": "commodity weakness with capital return support"
+    },
+    {
+      "id": "mega_cap_services",
+      "ticker": "AAPL",
+      "as_of": "2026-05-22",
+      "expected_focus": "positive technicals with regulatory overhang"
+    },
+    {
+      "id": "cloud_quality",
+      "ticker": "MSFT",
+      "as_of": "2026-05-22",
+      "expected_focus": "quality growth and cloud strength"
+    }
+  ],
+  "screen_cases": [
+    {
+      "id": "mega_cap_pool",
+      "as_of": "2026-05-22",
+      "tickers": [
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "AMZN",
+        "GOOGL",
+        "META"
+      ]
+    },
+    {
+      "id": "cross_sector_pool",
+      "as_of": "2026-05-22",
+      "tickers": [
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "AMZN",
+        "GOOGL",
+        "META",
+        "JPM",
+        "XOM",
+        "UNH",
+        "TSLA",
+        "AMD",
+        "WMT"
+      ]
+    }
+  ],
+  "rebalance_cases": [
+    {
+      "id": "balanced_existing_portfolio",
+      "as_of": "2026-05-22",
+      "tickers": [
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "AMZN",
+        "GOOGL",
+        "META",
+        "JPM",
+        "XOM",
+        "UNH",
+        "TSLA",
+        "AMD",
+        "WMT"
+      ],
+      "portfolio": "portfolio.json"
+    },
+    {
+      "id": "overweight_high_risk",
+      "as_of": "2026-05-22",
+      "tickers": [
+        "TSLA",
+        "AMD",
+        "NVDA",
+        "MSFT",
+        "WMT",
+        "UNH"
+      ],
+      "portfolio": {
+        "cash": 0.05,
+        "positions": {
+          "TSLA": 0.28,
+          "AMD": 0.2,
+          "NVDA": 0.15,
+          "MSFT": 0.12,
+          "WMT": 0.1,
+          "UNH": 0.1
+        },
+        "constraints": {
+          "max_position_weight": 0.22,
+          "max_trade_weight": 0.1,
+          "min_cash_weight": 0.1,
+          "volatility_limit": 0.025
+        }
+      }
+    },
+    {
+      "id": "cash_defensive_rotation",
+      "as_of": "2026-05-22",
+      "tickers": [
+        "AAPL",
+        "MSFT",
+        "JPM",
+        "XOM",
+        "UNH",
+        "WMT"
+      ],
+      "portfolio": {
+        "cash": 0.25,
+        "positions": {
+          "AAPL": 0.12,
+          "MSFT": 0.1,
+          "JPM": 0.14,
+          "XOM": 0.16,
+          "UNH": 0.13,
+          "WMT": 0.1
+        },
+        "constraints": {
+          "max_position_weight": 0.2,
+          "max_trade_weight": 0.08,
+          "min_cash_weight": 0.12,
+          "volatility_limit": 0.022
+        }
+      }
+    }
+  ]
+}

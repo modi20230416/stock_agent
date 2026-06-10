@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "stock-agent-course-project"
 version = "0.1.0"
-description = "Minimal LLM-assisted multi-agent stock decision support prototype for a course project."
+description = "LLM-assisted multi-agent stock decision support prototype for a course project."
 requires-python = ">=3.11"
 dependencies = []
 

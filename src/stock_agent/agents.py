@@ -38,17 +38,19 @@ class MarketInformationAgent:
                 warnings=["Need at least 4 daily bars for a stable technical summary."],
             )
 
-        window = history[-12:]
+        window = history[-20:]
         closes = [bar.close for bar in window]
         volumes = [bar.volume for bar in window]
         last_close = closes[-1]
-        ma_short = mean(closes[-3:])
-        ma_long = mean(closes[-8:]) if len(closes) >= 8 else mean(closes)
+        ma_short = mean(closes[-5:]) if len(closes) >= 5 else mean(closes)
+        ma_long = mean(closes[-20:]) if len(closes) >= 20 else mean(closes)
         total_return = (last_close / closes[0]) - 1.0
         momentum = (last_close / closes[max(0, len(closes) - 6)]) - 1.0
         returns = _daily_returns(window)
         volatility = pstdev(returns) if len(returns) > 1 else 0.0
         volume_change = (volumes[-1] / mean(volumes[:-1])) - 1.0 if len(volumes) > 1 else 0.0
+        peak = max(closes)
+        drawdown = (last_close / peak) - 1.0 if peak else 0.0
 
         score = 0.0
         evidence: list[str] = []
@@ -79,10 +81,14 @@ class MarketInformationAgent:
             score -= 0.35
             warnings.append("Daily volatility is above the prototype risk threshold.")
 
+        if drawdown < -0.08:
+            score -= 0.35
+            warnings.append("Recent drawdown is above the monitoring threshold.")
+
         confidence = _clip(0.35 + len(window) / 24 + abs(score) * 0.06, 0.2, 0.92)
         summary = (
-            f"Close={last_close:.2f}, MA3={ma_short:.2f}, MA8={ma_long:.2f}, "
-            f"12-day return={total_return:.1%}."
+            f"Close={last_close:.2f}, MA5={ma_short:.2f}, MA20={ma_long:.2f}, "
+            f"20-day return={total_return:.1%}, drawdown={drawdown:.1%}."
         )
         return AgentResult(
             self.name,
@@ -100,6 +106,7 @@ class MarketInformationAgent:
                 "momentum": momentum,
                 "daily_volatility": volatility,
                 "volume_change": volume_change,
+                "drawdown": drawdown,
             },
         )
 
@@ -129,15 +136,16 @@ class NewsSentimentAgent:
             score -= 0.25
 
         latest = items[-1]
+        event_types = sorted({item.event_type for item in items})
         evidence = [
-            f"{item.date.isoformat()}: {item.headline} ({item.sentiment:+.2f})"
+            f"{item.date.isoformat()}: [{item.event_type}] {item.headline} ({item.sentiment:+.2f})"
             for item in items
         ]
         warnings = ["At least one strongly negative news item was detected."] if event_risk else []
         confidence = _clip(0.25 + len(items) * 0.12 + abs(avg_sentiment) * 0.1, 0.2, 0.9)
         summary = (
             f"Average sample-news sentiment is {avg_sentiment:+.2f}; latest item: "
-            f"{latest.headline}."
+            f"{latest.headline}; event types={', '.join(event_types)}."
         )
         return AgentResult(
             self.name,
@@ -147,7 +155,12 @@ class NewsSentimentAgent:
             summary,
             evidence,
             warnings,
-            {"avg_sentiment": avg_sentiment, "news_count": len(items), "event_risk": event_risk},
+            {
+                "avg_sentiment": avg_sentiment,
+                "news_count": len(items),
+                "event_risk": event_risk,
+                "event_types": event_types,
+            },
         )
 
 
@@ -381,6 +394,13 @@ class DecisionAgent:
         weighted_score = (
             0.45 * market.score + 0.25 * news.score + 0.25 * fundamental.score
         )
+        component_scores = [market.score, news.score, fundamental.score]
+        has_positive = any(score >= 0.75 for score in component_scores)
+        has_negative = any(score <= -0.75 for score in component_scores)
+        conflict = has_positive and has_negative
+        if conflict:
+            weighted_score *= 0.82
+
         if weighted_score >= 0.75:
             action = "BUY"
         elif weighted_score <= -0.75:
@@ -394,7 +414,8 @@ class DecisionAgent:
         final_score = _clip(weighted_score + risk.score, -2.0, 2.0)
         confidence = _clip(
             mean([market.confidence, news.confidence, fundamental.confidence, risk.confidence])
-            - (0.08 if adjusted_action != action else 0.0),
+            - (0.08 if adjusted_action != action else 0.0)
+            - (0.08 if conflict else 0.0),
             0.15,
             0.95,
         )
@@ -404,6 +425,11 @@ class DecisionAgent:
             f"Fundamental: {fundamental.summary}",
             f"Risk: {risk.summary}",
         ]
+        if conflict:
+            rationale.append(
+                "Conflict: at least one agent is strongly positive while another is strongly negative."
+            )
+            risk.warnings.append("Cross-agent evidence conflict detected; decision confidence was reduced.")
         return adjusted_action, final_score, confidence, rationale, risk
 
 

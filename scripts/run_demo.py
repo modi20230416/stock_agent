@@ -10,26 +10,39 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from stock_agent.evaluator import benchmark_to_markdown, write_json_report
+from stock_agent.evaluator import (
+    benchmark_to_markdown,
+    final_benchmark_to_markdown,
+    write_json_report,
+)
 from stock_agent.pipeline import StockDecisionSystem
+
+DEFAULT_DATA_DIR = ROOT / "data" / "processed"
+if not DEFAULT_DATA_DIR.exists():
+    DEFAULT_DATA_DIR = ROOT / "data" / "sample"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run the minimal multi-agent stock decision prototype."
+        description="Run the multi-agent stock decision prototype."
     )
-    parser.add_argument("--data-dir", default=str(ROOT / "data" / "sample"))
+    parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--output-dir", default=str(ROOT / "reports"))
-    parser.add_argument("--as-of", default="2026-05-19")
+    parser.add_argument("--as-of", default="2026-05-22")
     parser.add_argument("--ticker", default="AAPL")
     parser.add_argument(
         "--tickers",
-        default="AAPL,MSFT,TSLA,NVDA",
+        default="AAPL,MSFT,NVDA,AMZN,GOOGL,META,JPM,XOM,UNH,TSLA,AMD,WMT",
         help="Comma-separated stock pool for screening/rebalance/benchmark.",
     )
     parser.add_argument(
+        "--cases-file",
+        default=str(ROOT / "data" / "benchmark" / "cases.json"),
+        help="Benchmark case suite for the final project version.",
+    )
+    parser.add_argument(
         "--task",
-        choices=["single", "screen", "rebalance", "benchmark", "all"],
+        choices=["single", "screen", "rebalance", "benchmark", "final", "all"],
         default="all",
     )
     parser.add_argument(
@@ -82,6 +95,15 @@ def main() -> int:
         markdown_path.write_text(markdown, encoding="utf-8")
         print(f"Wrote {markdown_path}")
         results["benchmark"] = payload
+
+    if args.task in {"final", "all"}:
+        payload = system.benchmark_cases(args.cases_file, data_dir=args.data_dir)
+        write_payload(payload, output_dir / "final_benchmark_results.json")
+        markdown = final_benchmark_to_markdown(payload)
+        markdown_path = output_dir / "final_benchmark_results.md"
+        markdown_path.write_text(markdown, encoding="utf-8")
+        print(f"Wrote {markdown_path}")
+        results["final"] = payload
 
     print(json.dumps(results, ensure_ascii=False, indent=2))
     return 0
