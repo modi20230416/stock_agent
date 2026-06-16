@@ -1,0 +1,321 @@
+\documentclass{article}
+
+\usepackage{arxiv}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{booktabs}
+
+\newcommand{\coursename}{Representation and Reasoning: Foundations of Large Models}
+\newcommand{\reporttitle}{LLM-Assisted Multi-Agent Stock Decision Support System for Daily-Frequency Simulated Trading}
+\newcommand{\reporttrack}{Applied Track}
+\newcommand{\initialpitchtitle}{Multi-Agent Stock Decision Support System for Daily-Frequency Simulated Trading}
+\newcommand{\reportpdfauthor}{Mo Di}
+\newcommand{\codepath}[1]{\path{#1}}
+
+\newcommand{\reportauthors}{
+  Mo Di (2021030019) \\
+  Applied Track Course Project \\
+  \texttt{GitHub: modi20230416/stock\_agent}
+}
+
+\title{\reporttitle\\
+\large Final Report for \coursename{}}
+
+\author{\reportauthors}
+
+\renewcommand{\shorttitle}{\reporttitle}
+\renewcommand{\undertitle}{}
+\renewcommand{\headeright}{}
+
+\hypersetup{
+pdftitle={\reporttitle},
+pdfsubject={LLM course project final report},
+pdfauthor={\reportpdfauthor},
+pdfkeywords={large language models, multi-agent systems, financial decision support, applied track},
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This applied-track project builds a reproducible multi-agent stock decision support prototype for daily-frequency simulated trading. The system addresses three tasks: single-stock analysis, candidate screening, and small-portfolio rebalancing under risk constraints. It combines specialized agents for market information, news sentiment, fundamental analysis, risk management, and final decision synthesis, with an optional OpenRouter-based LLM reviewer that reads structured intermediate evidence rather than raw prompts alone. To make the project reproducible without paid data services, I constructed a deterministic offline dataset covering 12 large-cap tickers, 60 trading days, sample news events, fundamentals, and portfolio constraints. The final benchmark suite contains 15 fixed cases: 10 single-stock cases, 2 screening cases, and 3 rebalancing cases. The system passes all 15 cases, maintains explicit risk warnings, satisfies portfolio constraints, and reports baseline comparisons against a technical-rule baseline, a no-risk ensemble baseline, and a direct LLM/single-agent baseline. It also produces an equal-weight auxiliary backtest with cumulative return, annualized return, maximum drawdown, and Sharpe ratio. The final deliverable includes runnable code, tests, Markdown reports, a static HTML dashboard, and usage documentation. The project demonstrates that a small but coherent multi-agent workflow can improve transparency, reproducibility, and risk awareness for simulated financial decision support.
+\end{abstract}
+
+\section{Problem Definition}
+\label{sec:problem-def}
+
+This project addresses the problem of building an interpretable decision-support prototype for daily-frequency stock analysis and simulated portfolio adjustment. The target users are students or beginning investment researchers who want to inspect how market, news, fundamental, and risk signals can be combined into a structured recommendation. The system is not designed for real-money trading, broker integration, or fully autonomous execution.
+
+The final system operates on a small offline stock universe. Its inputs are daily OHLCV price bars, short news/event records, basic fundamental indicators, and portfolio constraints. Its outputs are:
+
+\begin{itemize}[leftmargin=*]
+  \item a single-stock action, score, confidence, rationale, and risk warnings;
+  \item a ranked candidate list for a small stock pool;
+  \item target portfolio weights, trade deltas, and constraint warnings for rebalancing;
+  \item structured intermediate outputs from each agent.
+\end{itemize}
+
+The problem is not trivially solved by directly asking an LLM for a stock opinion. A direct prompt can produce fluent text but often hides the evidence used, mixes time horizons, ignores portfolio constraints, and is difficult to reproduce. This project therefore separates the workflow into specialized modules and asks the optional LLM component to review structured evidence rather than invent the entire decision. The final scope is a deterministic applied prototype that can be run locally, tested automatically, and inspected through generated reports.
+
+\section{Related Work and Project Positioning}
+
+Recent work on LLM financial agents motivates the use of structured roles and explicit evidence. FinMem proposes a trading agent with profiling, layered memory, and decision-making modules, emphasizing how historical and hierarchical financial information can support interpretable decisions \citep{yu2023finmem}. TradingAgents is the closest architectural reference: it uses specialized LLM-powered roles such as fundamental analysts, sentiment analysts, technical analysts, traders, and risk managers \citep{xiao2024tradingagents}. This project adopts the core idea of role decomposition but scales it down into a course-appropriate prototype with deterministic offline data, simpler scoring rules, and explicit tests.
+
+FinGPT highlights the data-centric challenge of financial LLM systems: useful financial models require pipelines for gathering, cleaning, and structuring financial data \citep{yang2023fingpt}. This influenced the decision to keep loaders separate from agents and to preserve an offline processed dataset. FinRL provides a reference point for quantitative-finance tooling, particularly its focus on reproducibility, modular pipelines, and backtest metrics such as cumulative return, Sharpe ratio, and maximum drawdown \citep{liu2021finrl}. The present project does not train a reinforcement-learning policy, but it borrows the idea that trading-related systems should report risk-adjusted metrics rather than only qualitative recommendations. Finally, ReAct-style reasoning-and-acting work \citep{yao2022react} motivated the broader principle that useful agent systems should expose intermediate actions and observations; in this project that principle appears as structured agent results and auditable JSON reports.
+
+The main contribution of this project is engineering integration rather than a new financial model. Compared with prior large frameworks, it is smaller, fully reproducible, and focused on a fixed course benchmark. Compared with a single LLM call, it is more inspectable and constraint-aware.
+
+\section{Methodology and Implementation}
+\label{sec:method}
+
+\subsection{Use Case and Design Goals}
+
+The concrete use case is a local decision-support tool for simulated daily stock analysis. A user should be able to run a command, select a task, and inspect why the system produced a recommendation. The design goals are:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Reproducibility:} the benchmark must run without external API keys or network access.
+  \item \textbf{Interpretability:} every final recommendation must include intermediate evidence.
+  \item \textbf{Risk awareness:} portfolio outputs must respect max-position, max-trade, minimum-cash, and volatility constraints.
+  \item \textbf{LLM optionality:} OpenRouter review should be usable when a key is available but should not be required for tests.
+  \item \textbf{Small-system completeness:} the delivered artifact should include data, code, tests, baseline comparisons, reports, and usage instructions.
+\end{enumerate}
+
+\subsection{System Architecture and Workflow}
+
+The central class is \codepath{StockDecisionSystem} in \codepath{src/stock_agent/pipeline.py}. It loads data from CSV/JSON files, orchestrates specialized agents, and exposes five main methods: \codepath{analyze_single}, \codepath{screen_candidates}, \codepath{rebalance}, \codepath{benchmark}, and \codepath{benchmark_cases}.
+
+\begin{center}
+\begin{tabular}{p{0.23\linewidth}p{0.67\linewidth}}
+\toprule
+\textbf{Layer} & \textbf{Role in the implementation} \\
+\midrule
+Data layer & \codepath{data_loader.py} reads prices, news, fundamentals, portfolio constraints, and benchmark cases. \\
+Agent layer & Market, news, fundamental, risk, and decision agents produce structured \codepath{AgentResult} and \codepath{Decision} objects. \\
+LLM layer & \codepath{LLMDecisionAdvisor} optionally calls OpenRouter and parses JSON review output. \\
+Evaluation layer & Baselines, final benchmark cases, and equal-weight backtest summarize behavior. \\
+Report layer & \codepath{evaluator.py} writes JSON, Markdown, and a static HTML dashboard. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The workflow for single-stock analysis is: load historical data up to the chosen date; compute market, news, and fundamental scores; combine them through the decision agent; pass the tentative action through risk management; optionally ask the LLM reviewer for a structured adjustment; then return the final action with evidence and warnings. Screening runs this workflow over a candidate pool and ranks by score. Rebalancing converts decisions into target weights and applies portfolio constraints.
+
+\subsection{Key Technical Design Choices}
+
+\paragraph{LLM and model choice.}
+The optional LLM integration uses OpenRouter through \codepath{src/stock_agent/llm.py}. The default model string is \codepath{openrouter/free}, but users can set \codepath{OPENROUTER_MODEL}. Three modes are supported: \codepath{off}, \codepath{auto}, and \codepath{required}. In \codepath{off} mode, no LLM call is made even if an API key is present. In \codepath{auto} mode, the system falls back to deterministic rules if no key is available. In \codepath{required} mode, a failed LLM call raises an error, which is useful for verifying a real API demonstration.
+
+\paragraph{Agent orchestration and structured output.}
+Each agent returns a typed object containing score, confidence, summary, evidence, warnings, and metrics. This makes the system easier to test and inspect than a free-form LLM answer. The decision agent uses a weighted combination of market, news, and fundamental signals, then applies a conflict penalty when strong positive and strong negative signals coexist.
+
+\paragraph{Data and tools.}
+The final offline dataset is generated by \codepath{scripts/generate_final_data.py}. It contains 12 tickers, 60 trading days, news events with event types, fundamental records, and benchmark cases. This keeps the project reproducible while still matching the proposal's goal of a 10--20 stock evaluation pool.
+
+\paragraph{Interface and deployment.}
+The primary interface is a CLI:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Command option} & \textbf{Purpose} \\
+\midrule
+\codepath{--task single} & Analyze one ticker. \\
+\codepath{--task screen} & Rank a candidate pool. \\
+\codepath{--task rebalance} & Generate portfolio target weights. \\
+\codepath{--task benchmark} & Compare the multi-agent system with baselines. \\
+\codepath{--task final} & Run the 15-case final benchmark suite. \\
+\codepath{--task all} & Generate all JSON, Markdown, and HTML outputs. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The project also writes \codepath{reports/final_dashboard.html}, a static dashboard that can be opened directly in a browser without installing Streamlit or a web server.
+
+\paragraph{Reliability and failure handling.}
+The implementation avoids hard dependency on external services. Missing API keys fall back to deterministic logic, LLM responses must parse as JSON, and tests verify that \codepath{--llm off} prevents hidden LLM baseline calls. Portfolio outputs are checked for max-position, max-trade, minimum-cash, and sum-to-one constraints.
+
+\subsection{Implementation Scope and Tradeoffs}
+
+The final implementation includes the core applied system, benchmark data, tests, reports, and dashboard. The main simplification is that the processed dataset is deterministic rather than downloaded from live financial APIs. This is a deliberate tradeoff: for a course final project, reproducibility and inspectability are more important than real-time market coverage. The equal-weight backtest is also an auxiliary metric rather than a full dynamic strategy simulator. Future versions could replace the offline files with cached Alpha Vantage, Finnhub, Kaggle, or SEC EDGAR adapters while preserving the same agent and benchmark interfaces.
+
+\section{Results and Deliverable}
+\label{sec:applied-results}
+
+\subsection{System Demonstration and Walkthrough}
+
+The delivered system can be used from the command line. Representative scenarios are:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Single-stock analysis.} The user runs \codepath{python scripts/run_demo.py --task single --ticker NVDA --llm off}. The system analyzes NVDA's price trend, news sentiment, fundamentals, and current weight, then returns a BUY/HOLD/SELL action with evidence and warnings.
+  \item \textbf{Candidate screening.} The user runs \codepath{python scripts/run_demo.py --task screen --tickers AAPL,MSFT,NVDA,TSLA,AMD,WMT --llm off}. The system analyzes each ticker and outputs a ranked list by score.
+  \item \textbf{Portfolio rebalancing.} The user runs \codepath{python scripts/run_demo.py --task rebalance --llm off}. The system converts stock decisions into target weights, then enforces cash, position, trade-size, and volatility constraints.
+  \item \textbf{Final benchmark and dashboard.} The user runs \codepath{python scripts/run_demo.py --task all --llm off}. The system writes \codepath{reports/final_benchmark_results.md}, \codepath{reports/final_benchmark_results.json}, and \codepath{reports/final_dashboard.html}.
+\end{enumerate}
+
+\subsection{Evaluation and Testing}
+
+The final benchmark suite contains 15 cases, all of which pass. Table~\ref{tab:final-results} summarizes the main evaluation results.
+
+\begin{table}[t]
+\centering
+\caption{Final benchmark and system validation results.}
+\label{tab:final-results}
+\begin{tabular}{lc}
+\toprule
+\textbf{Evaluation item} & \textbf{Result} \\
+\midrule
+Unit tests & 6/6 passed \\
+Final benchmark cases & 15/15 passed \\
+Single-stock cases & 10/10 passed \\
+Screening cases & 2/2 passed \\
+Rebalancing cases & 3/3 passed \\
+Stock universe size & 12 tickers \\
+Multi-agent risk warnings & 16 \\
+Technical baseline action diversity & 2 \\
+No-risk baseline action diversity & 3 \\
+Direct LLM baseline used LLM count in offline mode & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The benchmark also includes an equal-weight auxiliary backtest, shown in Table~\ref{tab:backtest}. These numbers should not be interpreted as investment performance claims because the dataset is deterministic and small. They demonstrate that the reporting pipeline includes standard finance-style summary metrics.
+
+\begin{table}[t]
+\centering
+\caption{Equal-weight auxiliary backtest over the processed offline dataset.}
+\label{tab:backtest}
+\begin{tabular}{lc}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Observations & 59 \\
+Cumulative return & 4.77\% \\
+Annualized return & 22.03\% \\
+Maximum drawdown & -1.37\% \\
+Sharpe ratio & 2.44 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:case-results} gives a compact view of representative benchmark outputs. The full report is available in \codepath{reports/final_benchmark_results.md}.
+
+\begin{longtable}{p{0.31\linewidth}p{0.16\linewidth}p{0.12\linewidth}p{0.31\linewidth}}
+\caption{Final benchmark case summary.}\label{tab:case-results}\\
+\toprule
+\textbf{Case} & \textbf{Task} & \textbf{Result} & \textbf{Key output} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Case} & \textbf{Task} & \textbf{Result} & \textbf{Key output} \\
+\midrule
+\endhead
+positive\_ai\_infrastructure & single & PASS & NVDA BUY, score 1.305 \\
+negative\_auto\_demand & single & PASS & TSLA SELL, score -0.7542 \\
+defensive\_retail & single & PASS & WMT BUY, score 0.82 \\
+regulatory\_healthcare & single & PASS & UNH HOLD, score -0.3792 \\
+chip\_margin\_conflict & single & PASS & AMD HOLD, score -0.2667 \\
+mega\_cap\_pool & screen & PASS & top ticker NVDA \\
+cross\_sector\_pool & screen & PASS & top ticker NVDA \\
+balanced\_existing\_portfolio & rebalance & PASS & cash 8.00\%, 2 warnings \\
+overweight\_high\_risk & rebalance & PASS & cash 10.00\%, 7 warnings \\
+cash\_defensive\_rotation & rebalance & PASS & cash 19.80\%, 6 warnings \\
+\bottomrule
+\end{longtable}
+
+\subsection{Failure Analysis and Robustness}
+
+The most important robustness decision is conservative fallback. If no OpenRouter key is set, the LLM reviewer is skipped and the deterministic multi-agent output is still valid. If \codepath{--llm off} is selected, the direct LLM baseline is also disabled, preventing accidental network use during reproducibility checks.
+
+The final system still has known limitations. First, the offline dataset is small and synthetic-style, so it cannot measure real market generalization. Second, the scoring rules are intentionally transparent but simple. Third, the backtest is equal-weight and auxiliary; it does not yet simulate a dynamic daily strategy that changes weights from each day's recommendations. Fourth, the benchmark checks structural success, risk constraints, and case coverage rather than profitability. These limitations are appropriate for a course prototype but should be addressed before any real financial use.
+
+\subsection{Reproducibility and Usage Instructions}
+
+The project repository is \url{https://github.com/modi20230416/stock_agent}. To reproduce the final results on Windows PowerShell:
+
+\begin{enumerate}[leftmargin=*]
+  \item Clone the repository and enter the project directory.
+  \item Create and install the local environment:
+\begin{verbatim}
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+\end{verbatim}
+  \item Run tests:
+\begin{verbatim}
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+\end{verbatim}
+  \item Run the complete demo:
+\begin{verbatim}
+.\.venv\Scripts\python.exe scripts\run_demo.py --task all --llm off
+\end{verbatim}
+\end{enumerate}
+
+The main generated outputs are:
+\begin{itemize}[leftmargin=*]
+  \item \codepath{reports/benchmark_results.md}
+  \item \codepath{reports/final_benchmark_results.md}
+  \item \codepath{reports/final_dashboard.html}
+  \item JSON detail files under \codepath{reports/}, which are generated locally and ignored by Git.
+\end{itemize}
+
+To verify real LLM integration, set \codepath{OPENROUTER_API_KEY} and run:
+\begin{verbatim}
+.\.venv\Scripts\python.exe scripts\run_demo.py --task final --llm required
+\end{verbatim}
+API keys should never be committed to the repository.
+
+\section{Team Collaboration and Workload Distribution}
+
+This report version is prepared for the implemented repository by Mo Di (2021030019). The concrete work completed in the repository includes problem scoping, project setup, data schema design, deterministic final dataset generation, multi-agent implementation, optional OpenRouter integration, benchmark design, baseline and backtest implementation, testing, Markdown/HTML report generation, GitHub packaging, and final report preparation. The repository is also organized for group collaboration through GitHub branches, pull requests, and reproducible setup instructions, so other members can inspect, run, and extend the project without changing the core environment assumptions.
+
+\section{Conclusion}
+
+This project built a runnable applied prototype for multi-agent stock decision support under a daily-frequency simulated trading setting. The final system separates market, news, fundamental, risk, and decision logic; optionally reviews structured evidence with an LLM; and produces reproducible benchmark reports. The system passes 15/15 final benchmark cases and 6/6 unit tests, and it includes code, data, documentation, Markdown reports, and a static dashboard.
+
+The main takeaway is that even a small, deterministic multi-agent workflow can make financial-decision prototypes more auditable than a direct free-form LLM answer. Future work should connect the same interfaces to real cached data sources, expand the benchmark to more market regimes, and replace the equal-weight auxiliary backtest with a dynamic strategy backtest.
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\clearpage
+\appendix
+\section{AI Use During Project Development and Reflection}
+\label{app:ai-use}
+
+\subsection{AI Use Records}
+
+AI coding assistance was used throughout the project. The main tool was Codex/ChatGPT-style coding assistance inside the local project workspace. AI was used for project planning, repository inspection, code generation, debugging, test design, report drafting, and Git/GitHub workflow support. The generated code and documentation were checked by running unit tests, inspecting output files, and validating final benchmark reports.
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Example 1: moving from minimal version to final benchmark.}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Project stage and problem:} After the minimal prototype, the system still needed a 10--20 stock benchmark, stronger agents, baselines, and final reports.
+\item \textbf{AI tool and usage:} I asked the coding assistant to inspect the repository, compare it against the proposal, and implement the final-version roadmap.
+\item \textbf{AI response and revision:} The assistant generated a deterministic processed dataset, benchmark cases, backtest code, baseline code, and tests. I verified the outputs by running \codepath{unittest} and the final CLI demo.
+\item \textbf{Final decision or lesson learned:} AI was useful for turning a broad requirement into concrete files and tests, but the benchmark criteria required human judgment to avoid overfitting to a wording-based expected-focus field.
+\end{itemize}
+
+\item \textbf{Example 2: LLM integration and offline reproducibility.}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Project stage and problem:} The project needed to call a real LLM when possible while remaining reproducible without API keys.
+\item \textbf{AI tool and usage:} I used the assistant to design \codepath{auto}, \codepath{required}, and \codepath{off} modes for OpenRouter integration.
+\item \textbf{AI response and revision:} The assistant implemented JSON parsing, fallback behavior, and tests ensuring that \codepath{--llm off} disables both the review agent and direct LLM baseline.
+\item \textbf{Final decision or lesson learned:} LLM calls are useful for review and explanation, but the system should never depend on a hidden network call to pass tests or reproduce a report.
+\end{itemize}
+\end{itemize}
+
+\subsection{Unresolved Problems Despite AI Use}
+
+The largest unresolved issue is real-data generalization. AI assistance helped design a clean adapter-friendly architecture, but it cannot replace the need to obtain, clean, cache, and validate real historical price, news, and SEC fundamental data. The final project therefore uses deterministic offline data and clearly labels the system as a course prototype rather than an investment product. Human judgment was also needed to keep the evaluation honest: passing a structural benchmark does not imply profitable real-world trading.
+
+\end{document}

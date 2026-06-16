@@ -84,6 +84,13 @@ $env:OPENROUTER_MODEL="openrouter/free"
 - `reports/final_benchmark_results.md`
 - `reports/final_dashboard.html`
 
+## Final submission materials
+
+- Final report source/PDF: `llm_course_project_report_template/final_report.tex`, `llm_course_project_report_template/final_report.pdf`
+- Presentation source/PDF: `llm_course_project_report_template/final_presentation.tex`, `llm_course_project_report_template/final_presentation.pdf`
+- Benchmark summary: `reports/final_benchmark_results.md`
+- Static dashboard: `reports/final_dashboard.html`
+
 仓库默认提交 Markdown/HTML 摘要，JSON 详情作为本地生成产物保留在 `.gitignore` 中。
 
 ## PyCharm 运行

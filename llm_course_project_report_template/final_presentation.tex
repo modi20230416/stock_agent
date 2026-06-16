@@ -1,0 +1,180 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{seagull}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+
+\title[LLM Stock Agent]{LLM-Assisted Multi-Agent Stock Decision Support System}
+\subtitle{Final Course Project Presentation}
+\author{Mo Di (2021030019)}
+\institute{Representation and Reasoning: Foundations of Large Models}
+\date{Final Presentation}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Problem and Goal}
+  \begin{itemize}
+    \item Build an applied prototype for daily-frequency simulated stock decision support.
+    \item Support three tasks: single-stock analysis, candidate screening, and portfolio rebalancing.
+    \item Avoid a black-box ``ask the LLM for a stock pick'' workflow.
+    \item Produce reproducible outputs, explicit risk warnings, and benchmarkable behavior.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{System Workflow}
+  \begin{center}
+  \begin{tabular}{>{\centering\arraybackslash}p{0.20\linewidth}
+                  >{\centering\arraybackslash}p{0.20\linewidth}
+                  >{\centering\arraybackslash}p{0.20\linewidth}
+                  >{\centering\arraybackslash}p{0.20\linewidth}}
+    \toprule
+    Data Layer & Agent Layer & Decision Layer & Evaluation Layer \\
+    \midrule
+    Prices, news, fundamentals, constraints
+    &
+    Market, sentiment, fundamental, risk agents
+    &
+    Decision synthesis plus optional OpenRouter reviewer
+    &
+    Fixed cases, baselines, backtest, dashboard \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.6em}
+  \begin{block}{Design principle}
+    The LLM sees structured intermediate evidence and reviews the decision; deterministic fallback keeps the benchmark reproducible.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Agent Design}
+  \begin{columns}
+    \begin{column}{0.48\linewidth}
+      \begin{block}{Signal agents}
+        \begin{itemize}
+          \item MarketInformationAgent
+          \item NewsSentimentAgent
+          \item FundamentalAgent
+        \end{itemize}
+      \end{block}
+      \begin{block}{Control agent}
+        \begin{itemize}
+          \item RiskManagerAgent checks volatility, drawdown, concentration, cash, and trade limits.
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\linewidth}
+      \begin{block}{Decision agents}
+        \begin{itemize}
+          \item DecisionAgent combines weighted evidence.
+          \item LLMDecisionAdvisor optionally adjusts the result through OpenRouter JSON review.
+        \end{itemize}
+      \end{block}
+      \begin{block}{Output}
+        Action, score, confidence, rationale, risk warnings, target weights, and trade deltas.
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Data and Benchmark}
+  \begin{itemize}
+    \item Offline processed dataset: 12 large-cap tickers, 60 trading days.
+    \item Inputs: OHLCV price history, sample news events, fundamentals, and portfolio constraints.
+    \item Final benchmark: 15 fixed cases.
+  \end{itemize}
+  \vspace{0.4em}
+  \begin{center}
+  \begin{tabular}{lrr}
+    \toprule
+    Task & Cases & Purpose \\
+    \midrule
+    Single-stock analysis & 10 & action, rationale, risk awareness \\
+    Candidate screening & 2 & ranked stock pool selection \\
+    Rebalancing & 3 & portfolio constraints and trade deltas \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Evaluation Results}
+  \begin{center}
+  \begin{tabular}{lr}
+    \toprule
+    Metric & Result \\
+    \midrule
+    Unit tests & 6/6 passing \\
+    Final benchmark cases & 15/15 passing \\
+    Multi-agent risk warnings & 16 \\
+    Equal-weight cumulative return & 4.77\% \\
+    Equal-weight max drawdown & -1.37\% \\
+    Equal-weight Sharpe ratio & 2.44 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.5em}
+  \begin{block}{Interpretation}
+    The benchmark evaluates structure, constraints, and reproducibility. It is not a claim of live trading profitability.
+  \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Demo Plan}
+  \begin{enumerate}
+    \item Run the final benchmark:
+{\scriptsize
+\begin{verbatim}
+.\.venv\Scripts\python.exe scripts\run_demo.py --task all --llm off
+\end{verbatim}
+}
+    \item Open generated outputs:
+      \begin{itemize}
+        \item \texttt{reports/final\_benchmark\_results.md}
+        \item \texttt{reports/final\_dashboard.html}
+      \end{itemize}
+    \item Optional LLM mode:
+{\scriptsize
+\begin{verbatim}
+$env:OPENROUTER_API_KEY="..."
+.\.venv\Scripts\python.exe scripts\run_demo.py --task final --llm required
+\end{verbatim}
+}
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Engineering Deliverables}
+  \begin{itemize}
+    \item Runnable Python package under \texttt{src/stock\_agent/}.
+    \item CLI entry point: \texttt{scripts/run\_demo.py}.
+    \item Deterministic data generator: \texttt{scripts/generate\_final\_data.py}.
+    \item Automated tests under \texttt{tests/}.
+    \item Reports: Markdown summary and static HTML dashboard.
+    \item Final written report and this presentation deck.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Limitations and Next Steps}
+  \begin{itemize}
+    \item Current data is deterministic and offline; live market/news feeds are future work.
+    \item Scoring rules are transparent but simple; calibrated statistical models could improve them.
+    \item The backtest is auxiliary and equal-weight, not an optimized trading strategy.
+    \item Next steps: real OpenRouter run record, richer demo video, broader stock universe, and more realistic transaction-cost modeling.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Takeaway}
+  \begin{block}{Final outcome}
+    The project has moved from a minimal prototype to a complete applied-track deliverable: runnable system, fixed benchmark, baselines, tests, generated reports, final report, and presentation slides.
+  \end{block}
+\end{frame}
+
+\end{document}
