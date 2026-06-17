@@ -28,7 +28,7 @@ class OpenRouterClient:
         timeout: int = 45,
     ) -> None:
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
-        self.model = model or os.getenv("OPENROUTER_MODEL", "openrouter/free")
+        self.model = model or os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-20b:free")
         self.timeout = timeout
         self.base_url = os.getenv(
             "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/chat/completions"

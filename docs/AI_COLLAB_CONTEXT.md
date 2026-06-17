@@ -44,7 +44,7 @@ python -m venv .venv
 
 ```powershell
 $env:OPENROUTER_API_KEY="..."
-$env:OPENROUTER_MODEL="openrouter/free"
+$env:OPENROUTER_MODEL="openai/gpt-oss-20b:free"
 .\.venv\Scripts\python.exe scripts\run_demo.py --task final --llm required
 ```
 

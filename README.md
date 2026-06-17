@@ -61,7 +61,7 @@ python -m venv .venv
 
 ```powershell
 $env:OPENROUTER_API_KEY="你的 OpenRouter key"
-$env:OPENROUTER_MODEL="openrouter/free"
+$env:OPENROUTER_MODEL="openai/gpt-oss-20b:free"
 .\.venv\Scripts\python.exe scripts\run_demo.py --task benchmark --llm required
 ```
 
@@ -70,6 +70,13 @@ $env:OPENROUTER_MODEL="openrouter/free"
 `--llm off`：完全离线，适合测试和复现。
 
 不要把真实 API key 写进代码或提交到 GitHub。
+
+已用 OpenRouter 免费模型 `openai/gpt-oss-20b:free` 做过真实 API smoke test：
+
+```powershell
+$env:OPENROUTER_API_KEY="你的 OpenRouter key"
+.\.venv\Scripts\python.exe scripts\run_demo.py --task single --ticker AAPL --llm required
+```
 
 ## 输出文件
 

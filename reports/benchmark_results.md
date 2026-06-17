@@ -3,7 +3,7 @@
 - As of: 2026-05-22
 - Tickers: AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, XOM, UNH, TSLA, AMD, WMT
 - LLM mode: off
-- LLM model: openrouter/free
+- LLM model: openai/gpt-oss-20b:free
 - LLM used count: 0
 
 ## Success Criteria

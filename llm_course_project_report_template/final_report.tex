@@ -114,7 +114,7 @@ The workflow for single-stock analysis is: load historical data up to the chosen
 \subsection{Key Technical Design Choices}
 
 \paragraph{LLM and model choice.}
-The optional LLM integration uses OpenRouter through \codepath{src/stock_agent/llm.py}. The default model string is \codepath{openrouter/free}, but users can set \codepath{OPENROUTER_MODEL}. Three modes are supported: \codepath{off}, \codepath{auto}, and \codepath{required}. In \codepath{off} mode, no LLM call is made even if an API key is present. In \codepath{auto} mode, the system falls back to deterministic rules if no key is available. In \codepath{required} mode, a failed LLM call raises an error, which is useful for verifying a real API demonstration.
+The optional LLM integration uses OpenRouter through \codepath{src/stock_agent/llm.py}. The default free-model string is \codepath{openai/gpt-oss-20b:free}, and users can override it with \codepath{OPENROUTER_MODEL}. Three modes are supported: \codepath{off}, \codepath{auto}, and \codepath{required}. In \codepath{off} mode, no LLM call is made even if an API key is present. In \codepath{auto} mode, the system falls back to deterministic rules if no key is available. In \codepath{required} mode, a failed LLM call raises an error, which is useful for verifying a real API demonstration.
 
 \paragraph{Agent orchestration and structured output.}
 Each agent returns a typed object containing score, confidence, summary, evidence, warnings, and metrics. This makes the system easier to test and inspect than a free-form LLM answer. The decision agent uses a weighted combination of market, news, and fundamental signals, then applies a conflict penalty when strong positive and strong negative signals coexist.
@@ -232,6 +232,8 @@ overweight\_high\_risk & rebalance & PASS & cash 10.00\%, 7 warnings \\
 cash\_defensive\_rotation & rebalance & PASS & cash 19.80\%, 6 warnings \\
 \bottomrule
 \end{longtable}
+
+After final packaging, I also ran a live OpenRouter smoke test on June 17, 2026 with the default free model \codepath{openai/gpt-oss-20b:free} and \codepath{scripts/run\_demo.py --task single --ticker AAPL --llm required}. The LLM review path completed successfully with \codepath{llm\_review.used=true}; the default-model AAPL output was \codepath{HOLD} with score \codepath{0.5033} and confidence \codepath{0.6729}. This validates the real API integration while the official benchmark remains deterministic and reproducible in \codepath{--llm off} mode.
 
 \subsection{Failure Analysis and Robustness}
 
