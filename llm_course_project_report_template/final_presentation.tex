@@ -113,13 +113,14 @@
     \toprule
     Metric & Result \\
     \midrule
-    Unit tests & 6/6 passing \\
+    Unit tests & 7/7 passing \\
     Final benchmark cases & 15/15 passing \\
+    Final criteria & 7/7 passing \\
+    Dataset validation & pass, no warnings \\
     OpenRouter smoke test & passed with gpt-oss-20b free \\
-    Multi-agent risk warnings & 16 \\
     Equal-weight cumulative return & 4.77\% \\
-    Equal-weight max drawdown & -1.37\% \\
-    Equal-weight Sharpe ratio & 2.44 \\
+    Decision-weighted cumulative return & 8.65\% \\
+    Worst stress scenario & tech drawdown, -7.46\% \\
     \bottomrule
   \end{tabular}
   \end{center}
@@ -139,6 +140,8 @@
 }
     \item Open generated outputs:
       \begin{itemize}
+        \item \texttt{reports/dataset\_validation.md}
+        \item \texttt{reports/benchmark\_results.md}
         \item \texttt{reports/final\_benchmark\_results.md}
         \item \texttt{reports/final\_dashboard.html}
       \end{itemize}
@@ -158,7 +161,7 @@ $env:OPENROUTER_API_KEY="..."
     \item CLI entry point: \texttt{scripts/run\_demo.py}.
     \item Deterministic data generator: \texttt{scripts/generate\_final\_data.py}.
     \item Automated tests under \texttt{tests/}.
-    \item Reports: Markdown summary and static HTML dashboard.
+    \item Reports: dataset validation, benchmark summaries, stress tests, and static HTML dashboard.
     \item Final written report and this presentation deck.
   \end{itemize}
 \end{frame}
@@ -167,14 +170,14 @@ $env:OPENROUTER_API_KEY="..."
   \begin{itemize}
     \item Current data is deterministic and offline; live market/news feeds are future work.
     \item Scoring rules are transparent but simple; calibrated statistical models could improve them.
-    \item The backtest is auxiliary and equal-weight, not an optimized trading strategy.
-    \item Next steps: richer demo video, broader stock universe, and more realistic transaction-cost modeling.
+    \item The decision-weighted backtest is simplified and does not model transaction costs or market impact.
+    \item Next steps: richer demo video, broader stock universe, cached real-data adapters, and more realistic execution modeling.
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Takeaway}
   \begin{block}{Final outcome}
-    The project has moved from a minimal prototype to a complete applied-track deliverable: runnable system, fixed benchmark, baselines, tests, generated reports, final report, and presentation slides.
+    The project has moved from a minimal prototype to an above-proposal applied-track deliverable: runnable system, fixed benchmark, baselines, validation, dynamic backtest, stress tests, generated reports, final report, and presentation slides.
   \end{block}
 \end{frame}
 

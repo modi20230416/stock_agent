@@ -15,6 +15,32 @@ def write_json_report(payload: dict[str, Any], path: str | Path) -> None:
     )
 
 
+def data_validation_to_markdown(payload: dict[str, Any]) -> str:
+    lines = [
+        "# Dataset Validation",
+        "",
+        f"- Valid: {'PASS' if payload.get('valid') else 'FAIL'}",
+        f"- Tickers: {payload.get('counts', {}).get('tickers', 0)}",
+        f"- Price rows: {payload.get('counts', {}).get('prices', 0)}",
+        f"- Price dates: {payload.get('counts', {}).get('price_dates', 0)}",
+        f"- Date range: {payload.get('date_range', {}).get('start')} to {payload.get('date_range', {}).get('end')}",
+        f"- Portfolio total weight: {payload.get('portfolio', {}).get('total_weight', 0.0):.2%}",
+        "",
+        "## Errors",
+    ]
+    errors = payload.get("errors", [])
+    lines.extend(f"- {error}" for error in errors) if errors else lines.append("- None")
+    lines.extend(["", "## Warnings"])
+    warnings = payload.get("warnings", [])
+    lines.extend(f"- {warning}" for warning in warnings) if warnings else lines.append("- None")
+    lines.extend(["", "## Coverage", "", "| Ticker | Price rows |", "| --- | ---: |"])
+    for ticker, count in sorted(
+        payload.get("coverage", {}).get("price_rows_by_ticker", {}).items()
+    ):
+        lines.append(f"| {ticker} | {count} |")
+    return "\n".join(lines) + "\n"
+
+
 def benchmark_to_markdown(payload: dict[str, Any]) -> str:
     criteria = payload["success_criteria"]
     multi = payload["multi_agent_with_risk"]
@@ -22,6 +48,9 @@ def benchmark_to_markdown(payload: dict[str, Any]) -> str:
     no_risk = payload["no_risk_ensemble_baseline"]
     direct = payload.get("direct_llm_baseline")
     backtest = payload.get("equal_weight_backtest")
+    decision_backtest = payload.get("decision_weighted_backtest")
+    stress_test = payload.get("stress_test") or []
+    data_validation = payload.get("data_validation", {})
     llm = payload.get("llm", {})
     lines = [
         "# Stock Agent Benchmark",
@@ -38,6 +67,18 @@ def benchmark_to_markdown(payload: dict[str, Any]) -> str:
         f"- {'PASS' if passed else 'FAIL'}: {name.replace('_', ' ')}"
         for name, passed in criteria.items()
     )
+    if data_validation:
+        lines.extend(
+            [
+                "",
+                "## Data Validation",
+                "",
+                f"- Valid: {data_validation.get('valid', False)}",
+                f"- Tickers: {data_validation.get('counts', {}).get('tickers', 0)}",
+                f"- Price dates: {data_validation.get('counts', {}).get('price_dates', 0)}",
+                f"- Warnings: {len(data_validation.get('warnings', []))}",
+            ]
+        )
     lines.extend(
         [
             "",
@@ -69,6 +110,41 @@ def benchmark_to_markdown(payload: dict[str, Any]) -> str:
                 f"| Sharpe ratio | {backtest['sharpe_ratio']:.2f} |",
             ]
         )
+    if decision_backtest:
+        lines.extend(
+            [
+                "",
+                "## Decision-Weighted Strategy Backtest",
+                "",
+                "| Metric | Value |",
+                "| --- | ---: |",
+                f"| Observations | {decision_backtest['observations']} |",
+                f"| Rebalances | {decision_backtest['rebalance_count']} |",
+                f"| Average turnover | {decision_backtest['average_turnover']:.2%} |",
+                f"| Average cash | {decision_backtest['average_cash_weight']:.2%} |",
+                f"| Cumulative return | {decision_backtest['cumulative_return']:.2%} |",
+                f"| Max drawdown | {decision_backtest['max_drawdown']:.2%} |",
+                f"| Sharpe ratio | {decision_backtest['sharpe_ratio']:.2f} |",
+            ]
+        )
+    if stress_test:
+        lines.extend(
+            [
+                "",
+                "## Portfolio Stress Test",
+                "",
+                "| Scenario | Portfolio return | Worst contributors |",
+                "| --- | ---: | --- |",
+            ]
+        )
+        for item in stress_test:
+            worst = ", ".join(
+                f"{entry['asset']} {entry['contribution']:.2%}"
+                for entry in item.get("worst_contributors", [])
+            )
+            lines.append(
+                f"| {item['scenario']} | {item['portfolio_return']:.2%} | {worst} |"
+            )
     lines.extend(
         [
             "",
@@ -94,6 +170,9 @@ def final_benchmark_to_markdown(payload: dict[str, Any]) -> str:
     criteria = payload["success_criteria"]
     baseline = payload["baseline_comparison"]
     backtest = baseline["equal_weight_backtest"]
+    decision_backtest = baseline.get("decision_weighted_backtest")
+    stress_test = baseline.get("stress_test") or []
+    data_validation = baseline.get("data_validation", {})
     lines = [
         "# Final Version Benchmark",
         "",
@@ -154,6 +233,24 @@ def final_benchmark_to_markdown(payload: dict[str, Any]) -> str:
             f"- Equal-weight max drawdown: {backtest['max_drawdown']:.2%}",
         ]
     )
+    if decision_backtest:
+        lines.extend(
+            [
+                f"- Decision-weighted cumulative return: {decision_backtest['cumulative_return']:.2%}",
+                f"- Decision-weighted max drawdown: {decision_backtest['max_drawdown']:.2%}",
+                f"- Decision-weighted rebalances: {decision_backtest['rebalance_count']}",
+            ]
+        )
+    if stress_test:
+        worst = min(stress_test, key=lambda item: item["portfolio_return"])
+        lines.append(
+            f"- Worst stress scenario: {worst['scenario']} ({worst['portfolio_return']:.2%})"
+        )
+    if data_validation:
+        lines.append(
+            f"- Data validation: {'PASS' if data_validation.get('valid') else 'FAIL'} "
+            f"({data_validation.get('counts', {}).get('tickers', 0)} tickers)"
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -163,6 +260,9 @@ def final_benchmark_to_html(payload: dict[str, Any]) -> str:
     criteria = payload["success_criteria"]
     baseline = payload["baseline_comparison"]
     backtest = baseline["equal_weight_backtest"]
+    decision_backtest = baseline.get("decision_weighted_backtest", {})
+    stress_test = baseline.get("stress_test") or []
+    data_validation = baseline.get("data_validation", {})
 
     case_rows: list[str] = []
     for item in payload["single_cases"]:
@@ -210,6 +310,14 @@ def final_benchmark_to_html(payload: dict[str, Any]) -> str:
         for name, passed in criteria.items()
     )
     universe = ", ".join(suite["default_pool"])
+    stress_rows = "".join(
+        "<tr>"
+        f"<th>{escape(item['scenario'])}</th>"
+        f"<td>{item['portfolio_return']:.2%}</td>"
+        f"<td>{escape(', '.join(entry['asset'] for entry in item.get('worst_contributors', [])))}</td>"
+        "</tr>"
+        for item in stress_test
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -350,6 +458,7 @@ def final_benchmark_to_html(payload: dict[str, Any]) -> str:
       <div class="metric"><span class="label">Pass rate</span><span class="value">{aggregate['pass_rate']:.0%}</span></div>
       <div class="metric"><span class="label">Cases</span><span class="value">{aggregate['passed_cases']}/{aggregate['total_cases']}</span></div>
       <div class="metric"><span class="label">Universe</span><span class="value">{len(suite['default_pool'])} stocks</span></div>
+      <div class="metric"><span class="label">Data validation</span><span class="value">{'PASS' if data_validation.get('valid') else 'CHECK'}</span></div>
     </div>
     <section>
       <h2>Final Criteria</h2>
@@ -383,6 +492,29 @@ def final_benchmark_to_html(payload: dict[str, Any]) -> str:
             <tr><th>Annualized return</th><td>{backtest['annualized_return']:.2%}</td></tr>
             <tr><th>Max drawdown</th><td>{backtest['max_drawdown']:.2%}</td></tr>
             <tr><th>Sharpe ratio</th><td>{backtest['sharpe_ratio']:.2f}</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+    <div class="two-col">
+      <section>
+        <h2>Decision-Weighted Backtest</h2>
+        <table>
+          <tbody>
+            <tr><th>Observations</th><td>{decision_backtest.get('observations', 0)}</td></tr>
+            <tr><th>Rebalances</th><td>{decision_backtest.get('rebalance_count', 0)}</td></tr>
+            <tr><th>Average turnover</th><td>{decision_backtest.get('average_turnover', 0.0):.2%}</td></tr>
+            <tr><th>Cumulative return</th><td>{decision_backtest.get('cumulative_return', 0.0):.2%}</td></tr>
+            <tr><th>Max drawdown</th><td>{decision_backtest.get('max_drawdown', 0.0):.2%}</td></tr>
+            <tr><th>Sharpe ratio</th><td>{decision_backtest.get('sharpe_ratio', 0.0):.2f}</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section>
+        <h2>Portfolio Stress Test</h2>
+        <table>
+          <tbody>
+            {stress_rows}
           </tbody>
         </table>
       </section>

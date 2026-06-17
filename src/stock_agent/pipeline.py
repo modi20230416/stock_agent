@@ -12,14 +12,14 @@ from .agents import (
     NewsSentimentAgent,
     RiskManagementAgent,
 )
-from .backtest import equal_weight_backtest
+from .backtest import equal_weight_backtest, stress_test_portfolio, weighted_backtest
 from .baselines import (
     DirectLLMBaseline,
     NoRiskEnsembleBaseline,
     TechnicalRuleBaseline,
     action_diversity,
 )
-from .data_loader import load_benchmark_cases, load_sample_dataset, parse_date
+from .data_loader import load_benchmark_cases, load_sample_dataset, parse_date, validate_dataset
 from .models import Decision, FundamentalRecord, NewsItem, PortfolioRecommendation, PriceBar
 
 
@@ -234,15 +234,22 @@ class StockDecisionSystem:
         ]
         violations = self._constraint_violations(rebalance.target_weights)
         backtest = equal_weight_backtest(self.prices, candidate_tickers)
+        decision_backtest = self._decision_weighted_backtest(candidate_tickers)
+        stress_test = stress_test_portfolio(rebalance.target_weights)
+        data_validation = validate_dataset(
+            self.prices, self.news, self.fundamentals, self.portfolio
+        )
         return {
             "as_of": as_of if isinstance(as_of, str) else as_of.isoformat(),
             "tickers": candidate_tickers,
+            "data_validation": data_validation,
             "llm": {
                 "mode": self.use_llm,
                 "model": self.llm_advisor.client.model,
                 "used_count": sum(1 for decision in decisions if (decision.llm_review or {}).get("used")),
             },
             "success_criteria": {
+                "dataset_schema_valid": data_validation["valid"],
                 "single_stock_has_action_reason_and_risk": all(
                     decision.action and decision.rationale and decision.risk_warnings
                     for decision in decisions
@@ -282,6 +289,8 @@ class StockDecisionSystem:
                 "action_diversity": action_diversity(direct_outputs),
             },
             "equal_weight_backtest": backtest.to_dict(),
+            "decision_weighted_backtest": decision_backtest,
+            "stress_test": stress_test,
             "rebalance": rebalance.to_dict(),
         }
 
@@ -375,6 +384,7 @@ class StockDecisionSystem:
             },
             "success_criteria": {
                 "case_suite_has_10_to_20_stocks": 10 <= len(default_pool) <= 20,
+                "dataset_schema_valid": baseline["data_validation"]["valid"],
                 "all_cases_pass": passed_cases == total_cases and total_cases > 0,
                 "multi_agent_beats_minimal_surface": (
                     baseline["multi_agent_with_risk"]["risk_warning_count"]
@@ -382,6 +392,8 @@ class StockDecisionSystem:
                     and not baseline["multi_agent_with_risk"]["constraint_violations"]
                 ),
                 "backtest_available": baseline["equal_weight_backtest"]["observations"] > 0,
+                "dynamic_strategy_backtest_available": baseline["decision_weighted_backtest"]["observations"] > 0,
+                "stress_test_available": len(baseline["stress_test"]) >= 3,
             },
             "single_cases": single_results,
             "screen_cases": screen_results,
@@ -401,3 +413,88 @@ class StockDecisionSystem:
         if abs(sum(weights.values()) - 1.0) > 1e-6:
             violations.append("Target weights do not sum to 1.")
         return violations
+
+    def _decision_weighted_backtest(
+        self, tickers: list[str], rebalance_interval_days: int = 5
+    ) -> dict[str, Any]:
+        selected = [ticker.upper() for ticker in tickers]
+        dates = sorted({bar.date for bar in self.prices if bar.ticker in selected})
+        if len(dates) < 2:
+            empty = equal_weight_backtest(self.prices, selected).to_dict()
+            empty.update(
+                {
+                    "method": "decision_weighted",
+                    "rebalance_interval_days": rebalance_interval_days,
+                    "rebalance_count": 0,
+                    "average_turnover": 0.0,
+                    "average_cash_weight": 0.0,
+                    "risk_warning_count": 0,
+                }
+            )
+            return empty
+
+        rule_system = (
+            self
+            if self.use_llm == "off"
+            else StockDecisionSystem(
+                self.prices,
+                self.news,
+                self.fundamentals,
+                self.portfolio,
+                use_llm="off",
+            )
+        )
+        current_weights = {
+            ticker.upper(): float(weight)
+            for ticker, weight in self.portfolio.get("positions", {}).items()
+        }
+        current_weights["CASH"] = float(self.portfolio.get("cash", 0.0))
+        weights_by_date: dict[date, dict[str, float]] = {}
+        turnover_total = 0.0
+        cash_total = 0.0
+        warning_count = 0
+        rebalance_count = 0
+
+        for index in range(1, len(dates)):
+            signal_date = dates[index - 1]
+            return_date = dates[index]
+            if index == 1 or (index - 1) % rebalance_interval_days == 0:
+                portfolio_state = {
+                    "positions": {
+                        ticker: weight
+                        for ticker, weight in current_weights.items()
+                        if ticker != "CASH"
+                    },
+                    "cash": current_weights.get("CASH", 0.0),
+                    "constraints": self.constraints,
+                }
+                recommendation = rule_system.with_portfolio(portfolio_state).rebalance(
+                    selected, signal_date
+                )
+                current_weights = recommendation.target_weights
+                turnover_total += sum(
+                    abs(value)
+                    for asset, value in recommendation.trades.items()
+                    if asset != "CASH"
+                )
+                cash_total += current_weights.get("CASH", 0.0)
+                warning_count += len(recommendation.warnings)
+                rebalance_count += 1
+            weights_by_date[return_date] = dict(current_weights)
+
+        result = weighted_backtest(self.prices, selected, weights_by_date).to_dict()
+        result.update(
+            {
+                "method": "decision_weighted",
+                "rebalance_interval_days": rebalance_interval_days,
+                "rebalance_count": rebalance_count,
+                "average_turnover": round(
+                    turnover_total / rebalance_count if rebalance_count else 0.0, 4
+                ),
+                "average_cash_weight": round(
+                    cash_total / rebalance_count if rebalance_count else 0.0, 4
+                ),
+                "risk_warning_count": warning_count,
+            }
+        )
+        return result

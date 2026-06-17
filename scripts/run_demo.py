@@ -12,10 +12,12 @@ if str(SRC) not in sys.path:
 
 from stock_agent.evaluator import (
     benchmark_to_markdown,
+    data_validation_to_markdown,
     final_benchmark_to_html,
     final_benchmark_to_markdown,
     write_json_report,
 )
+from stock_agent.data_loader import validate_dataset
 from stock_agent.pipeline import StockDecisionSystem
 
 DEFAULT_DATA_DIR = ROOT / "data" / "processed"
@@ -43,7 +45,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--task",
-        choices=["single", "screen", "rebalance", "benchmark", "final", "all"],
+        choices=["validate", "single", "screen", "rebalance", "benchmark", "final", "all"],
         default="all",
     )
     parser.add_argument(
@@ -71,6 +73,17 @@ def main() -> int:
     tickers = [item.strip().upper() for item in args.tickers.split(",") if item.strip()]
     system = StockDecisionSystem.from_data_dir(args.data_dir, use_llm=args.llm)
     results = {}
+
+    if args.task in {"validate", "all"}:
+        payload = validate_dataset(
+            system.prices, system.news, system.fundamentals, system.portfolio
+        )
+        write_payload(payload, output_dir / "dataset_validation.json")
+        markdown = data_validation_to_markdown(payload)
+        markdown_path = output_dir / "dataset_validation.md"
+        markdown_path.write_text(markdown, encoding="utf-8")
+        print(f"Wrote {markdown_path}")
+        results["validate"] = payload
 
     if args.task in {"single", "all"}:
         decision = system.analyze_single(args.ticker, args.as_of)

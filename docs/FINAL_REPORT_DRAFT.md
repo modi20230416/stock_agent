@@ -89,7 +89,7 @@ Final benchmark 的成功标准包括：
 
 当前结果：
 
-- 单元测试：6/6 通过。
+- 单元测试：7/7 通过。
 - Final benchmark：15/15 cases 通过。
 - Final criteria：全部通过。
 - 股票池规模：12 支。

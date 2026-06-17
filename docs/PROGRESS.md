@@ -62,7 +62,7 @@
 
 结果：
 
-- 单元测试：6/6 通过。
+- 单元测试：7/7 通过。
 - Final benchmark：15/15 cases 通过。
 - Static dashboard：`reports/final_dashboard.html` 已生成。
 - 股票池：12 支股票，满足 proposal 中 10-20 支股票范围。

@@ -49,7 +49,7 @@ pdfkeywords={large language models, multi-agent systems, financial decision supp
 \maketitle
 
 \begin{abstract}
-This applied-track project builds a reproducible multi-agent stock decision support prototype for daily-frequency simulated trading. The system addresses three tasks: single-stock analysis, candidate screening, and small-portfolio rebalancing under risk constraints. It combines specialized agents for market information, news sentiment, fundamental analysis, risk management, and final decision synthesis, with an optional OpenRouter-based LLM reviewer that reads structured intermediate evidence rather than raw prompts alone. To make the project reproducible without paid data services, I constructed a deterministic offline dataset covering 12 large-cap tickers, 60 trading days, sample news events, fundamentals, and portfolio constraints. The final benchmark suite contains 15 fixed cases: 10 single-stock cases, 2 screening cases, and 3 rebalancing cases. The system passes all 15 cases, maintains explicit risk warnings, satisfies portfolio constraints, and reports baseline comparisons against a technical-rule baseline, a no-risk ensemble baseline, and a direct LLM/single-agent baseline. It also produces an equal-weight auxiliary backtest with cumulative return, annualized return, maximum drawdown, and Sharpe ratio. The final deliverable includes runnable code, tests, Markdown reports, a static HTML dashboard, and usage documentation. The project demonstrates that a small but coherent multi-agent workflow can improve transparency, reproducibility, and risk awareness for simulated financial decision support.
+This applied-track project builds a reproducible multi-agent stock decision support prototype for daily-frequency simulated trading. The system addresses three tasks: single-stock analysis, candidate screening, and small-portfolio rebalancing under risk constraints. It combines specialized agents for market information, news sentiment, fundamental analysis, risk management, and final decision synthesis, with an optional OpenRouter-based LLM reviewer that reads structured intermediate evidence rather than raw prompts alone. To make the project reproducible without paid data services, I constructed a deterministic offline dataset covering 12 large-cap tickers, 60 trading days, sample news events, fundamentals, and portfolio constraints. The final benchmark suite contains 15 fixed cases: 10 single-stock cases, 2 screening cases, and 3 rebalancing cases. The system passes all 15 cases, validates the dataset schema, maintains explicit risk warnings, satisfies portfolio constraints, and reports baseline comparisons against a technical-rule baseline, a no-risk ensemble baseline, and a direct LLM/single-agent baseline. It also produces equal-weight and decision-weighted backtests plus portfolio stress tests. The final deliverable includes runnable code, tests, Markdown reports, a static HTML dashboard, and usage documentation. The project demonstrates that a small but coherent multi-agent workflow can improve transparency, reproducibility, and risk awareness for simulated financial decision support.
 \end{abstract}
 
 \section{Problem Definition}
@@ -103,7 +103,7 @@ The central class is \codepath{StockDecisionSystem} in \codepath{src/stock_agent
 Data layer & \codepath{data_loader.py} reads prices, news, fundamentals, portfolio constraints, and benchmark cases. \\
 Agent layer & Market, news, fundamental, risk, and decision agents produce structured \codepath{AgentResult} and \codepath{Decision} objects. \\
 LLM layer & \codepath{LLMDecisionAdvisor} optionally calls OpenRouter and parses JSON review output. \\
-Evaluation layer & Baselines, final benchmark cases, and equal-weight backtest summarize behavior. \\
+Evaluation layer & Baselines, final benchmark cases, data validation, equal-weight and decision-weighted backtests, and stress tests summarize behavior. \\
 Report layer & \codepath{evaluator.py} writes JSON, Markdown, and a static HTML dashboard. \\
 \bottomrule
 \end{tabular}
@@ -130,6 +130,7 @@ The primary interface is a CLI:
 \toprule
 \textbf{Command option} & \textbf{Purpose} \\
 \midrule
+\codepath{--task validate} & Check dataset schema, coverage, and portfolio weights. \\
 \codepath{--task single} & Analyze one ticker. \\
 \codepath{--task screen} & Rank a candidate pool. \\
 \codepath{--task rebalance} & Generate portfolio target weights. \\
@@ -147,7 +148,7 @@ The implementation avoids hard dependency on external services. Missing API keys
 
 \subsection{Implementation Scope and Tradeoffs}
 
-The final implementation includes the core applied system, benchmark data, tests, reports, and dashboard. The main simplification is that the processed dataset is deterministic rather than downloaded from live financial APIs. This is a deliberate tradeoff: for a course final project, reproducibility and inspectability are more important than real-time market coverage. The equal-weight backtest is also an auxiliary metric rather than a full dynamic strategy simulator. Future versions could replace the offline files with cached Alpha Vantage, Finnhub, Kaggle, or SEC EDGAR adapters while preserving the same agent and benchmark interfaces.
+The final implementation includes the core applied system, benchmark data, tests, reports, and dashboard. The main simplification is that the processed dataset is deterministic rather than downloaded from live financial APIs. This is a deliberate tradeoff: for a course final project, reproducibility and inspectability are more important than real-time market coverage. The decision-weighted backtest is still a simplified simulator, but it is sufficient to show how agent scores can be converted into a repeatable portfolio evaluation loop. Future versions could replace the offline files with cached Alpha Vantage, Finnhub, Kaggle, or SEC EDGAR adapters while preserving the same agent and benchmark interfaces.
 
 \section{Results and Deliverable}
 \label{sec:applied-results}
@@ -175,8 +176,10 @@ The final benchmark suite contains 15 cases, all of which pass. Table~\ref{tab:f
 \toprule
 \textbf{Evaluation item} & \textbf{Result} \\
 \midrule
-Unit tests & 6/6 passed \\
+Unit tests & 7/7 passed \\
 Final benchmark cases & 15/15 passed \\
+Final criteria & 7/7 passed \\
+Dataset validation & PASS, no warnings \\
 Single-stock cases & 10/10 passed \\
 Screening cases & 2/2 passed \\
 Rebalancing cases & 3/3 passed \\
@@ -185,25 +188,27 @@ Multi-agent risk warnings & 16 \\
 Technical baseline action diversity & 2 \\
 No-risk baseline action diversity & 3 \\
 Direct LLM baseline used LLM count in offline mode & 0 \\
+Worst stress scenario & tech\_ai\_drawdown, -7.46\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The benchmark also includes an equal-weight auxiliary backtest, shown in Table~\ref{tab:backtest}. These numbers should not be interpreted as investment performance claims because the dataset is deterministic and small. They demonstrate that the reporting pipeline includes standard finance-style summary metrics.
+The benchmark includes both an equal-weight auxiliary backtest and a decision-weighted strategy backtest, shown in Table~\ref{tab:backtest}. These numbers should not be interpreted as investment performance claims because the dataset is deterministic and small. They demonstrate that the reporting pipeline includes standard finance-style summary metrics and can evaluate recommendations as portfolio weights.
 
 \begin{table}[t]
 \centering
-\caption{Equal-weight auxiliary backtest over the processed offline dataset.}
+\caption{Backtest metrics over the processed offline dataset.}
 \label{tab:backtest}
-\begin{tabular}{lc}
+\begin{tabular}{lcc}
 \toprule
-\textbf{Metric} & \textbf{Value} \\
+\textbf{Metric} & \textbf{Equal-weight} & \textbf{Decision-weighted} \\
 \midrule
-Observations & 59 \\
-Cumulative return & 4.77\% \\
-Annualized return & 22.03\% \\
-Maximum drawdown & -1.37\% \\
-Sharpe ratio & 2.44 \\
+Observations & 59 & 59 \\
+Cumulative return & 4.77\% & 8.65\% \\
+Maximum drawdown & -1.37\% & -1.18\% \\
+Sharpe ratio & 2.44 & 4.82 \\
+Rebalances & N/A & 12 \\
+Average turnover & N/A & 14.25\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -227,7 +232,7 @@ regulatory\_healthcare & single & PASS & UNH HOLD, score -0.3792 \\
 chip\_margin\_conflict & single & PASS & AMD HOLD, score -0.2667 \\
 mega\_cap\_pool & screen & PASS & top ticker NVDA \\
 cross\_sector\_pool & screen & PASS & top ticker NVDA \\
-balanced\_existing\_portfolio & rebalance & PASS & cash 8.00\%, 2 warnings \\
+balanced\_existing\_portfolio & rebalance & PASS & cash 8.00\%, 1 warning \\
 overweight\_high\_risk & rebalance & PASS & cash 10.00\%, 7 warnings \\
 cash\_defensive\_rotation & rebalance & PASS & cash 19.80\%, 6 warnings \\
 \bottomrule
@@ -239,7 +244,7 @@ After final packaging, I also ran a live OpenRouter smoke test on June 17, 2026 
 
 The most important robustness decision is conservative fallback. If no OpenRouter key is set, the LLM reviewer is skipped and the deterministic multi-agent output is still valid. If \codepath{--llm off} is selected, the direct LLM baseline is also disabled, preventing accidental network use during reproducibility checks.
 
-The final system still has known limitations. First, the offline dataset is small and synthetic-style, so it cannot measure real market generalization. Second, the scoring rules are intentionally transparent but simple. Third, the backtest is equal-weight and auxiliary; it does not yet simulate a dynamic daily strategy that changes weights from each day's recommendations. Fourth, the benchmark checks structural success, risk constraints, and case coverage rather than profitability. These limitations are appropriate for a course prototype but should be addressed before any real financial use.
+The final system still has known limitations. First, the offline dataset is small and synthetic-style, so it cannot measure real market generalization. Second, the scoring rules are intentionally transparent but simple. Third, the decision-weighted backtest uses a simplified weekly rebalancing loop and does not model transaction costs, slippage, taxes, or market impact. Fourth, the benchmark checks structural success, risk constraints, and case coverage rather than profitability. These limitations are appropriate for a course prototype but should be addressed before any real financial use.
 
 \subsection{Reproducibility and Usage Instructions}
 
@@ -256,6 +261,10 @@ python -m venv .venv
 \begin{verbatim}
 .\.venv\Scripts\python.exe -m unittest discover -s tests
 \end{verbatim}
+  \item Validate the dataset:
+\begin{verbatim}
+.\.venv\Scripts\python.exe scripts\run_demo.py --task validate --llm off
+\end{verbatim}
   \item Run the complete demo:
 \begin{verbatim}
 .\.venv\Scripts\python.exe scripts\run_demo.py --task all --llm off
@@ -264,6 +273,7 @@ python -m venv .venv
 
 The main generated outputs are:
 \begin{itemize}[leftmargin=*]
+  \item \codepath{reports/dataset_validation.md}
   \item \codepath{reports/benchmark_results.md}
   \item \codepath{reports/final_benchmark_results.md}
   \item \codepath{reports/final_dashboard.html}
@@ -278,13 +288,13 @@ API keys should never be committed to the repository.
 
 \section{Team Collaboration and Workload Distribution}
 
-This report version is prepared for the implemented repository by Mo Di (2021030019). The concrete work completed in the repository includes problem scoping, project setup, data schema design, deterministic final dataset generation, multi-agent implementation, optional OpenRouter integration, benchmark design, baseline and backtest implementation, testing, Markdown/HTML report generation, GitHub packaging, and final report preparation. The repository is also organized for group collaboration through GitHub branches, pull requests, and reproducible setup instructions, so other members can inspect, run, and extend the project without changing the core environment assumptions.
+This report version is prepared for the implemented repository by Mo Di (2021030019). The concrete work completed in the repository includes problem scoping, project setup, data schema design, deterministic final dataset generation, multi-agent implementation, optional OpenRouter integration, benchmark design, baseline and backtest implementation, dynamic strategy evaluation, stress testing, dataset validation, Markdown/HTML report generation, GitHub packaging, and final report preparation. The repository is also organized for group collaboration through GitHub branches, pull requests, and reproducible setup instructions, so other members can inspect, run, and extend the project without changing the core environment assumptions.
 
 \section{Conclusion}
 
-This project built a runnable applied prototype for multi-agent stock decision support under a daily-frequency simulated trading setting. The final system separates market, news, fundamental, risk, and decision logic; optionally reviews structured evidence with an LLM; and produces reproducible benchmark reports. The system passes 15/15 final benchmark cases and 6/6 unit tests, and it includes code, data, documentation, Markdown reports, and a static dashboard.
+This project built a runnable applied prototype for multi-agent stock decision support under a daily-frequency simulated trading setting. The final system separates market, news, fundamental, risk, and decision logic; optionally reviews structured evidence with an LLM; and produces reproducible benchmark reports. The system passes 15/15 final benchmark cases, 7/7 unit tests, and 7/7 final criteria, and it includes code, data, documentation, Markdown reports, and a static dashboard.
 
-The main takeaway is that even a small, deterministic multi-agent workflow can make financial-decision prototypes more auditable than a direct free-form LLM answer. Future work should connect the same interfaces to real cached data sources, expand the benchmark to more market regimes, and replace the equal-weight auxiliary backtest with a dynamic strategy backtest.
+The main takeaway is that even a small, deterministic multi-agent workflow can make financial-decision prototypes more auditable than a direct free-form LLM answer. The final iteration now goes beyond the original proposal by adding schema validation, decision-weighted backtesting, stress testing, and a live OpenRouter smoke test. Future work should connect the same interfaces to real cached data sources, expand the benchmark to more market regimes, and make the strategy backtest more execution-realistic.
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
@@ -303,7 +313,7 @@ AI coding assistance was used throughout the project. The main tool was Codex/Ch
 \begin{itemize}[leftmargin=*]
 \item \textbf{Project stage and problem:} After the minimal prototype, the system still needed a 10--20 stock benchmark, stronger agents, baselines, and final reports.
 \item \textbf{AI tool and usage:} I asked the coding assistant to inspect the repository, compare it against the proposal, and implement the final-version roadmap.
-\item \textbf{AI response and revision:} The assistant generated a deterministic processed dataset, benchmark cases, backtest code, baseline code, and tests. I verified the outputs by running \codepath{unittest} and the final CLI demo.
+\item \textbf{AI response and revision:} The assistant generated a deterministic processed dataset, benchmark cases, backtest code, baseline code, stress-test code, dataset validation, and tests. I verified the outputs by running \codepath{unittest} and the final CLI demo.
 \item \textbf{Final decision or lesson learned:} AI was useful for turning a broad requirement into concrete files and tests, but the benchmark criteria required human judgment to avoid overfitting to a wording-based expected-focus field.
 \end{itemize}
 

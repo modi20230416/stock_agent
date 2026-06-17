@@ -138,19 +138,23 @@
       <div class="metric"><span class="label">Pass rate</span><span class="value">100%</span></div>
       <div class="metric"><span class="label">Cases</span><span class="value">15/15</span></div>
       <div class="metric"><span class="label">Universe</span><span class="value">12 stocks</span></div>
+      <div class="metric"><span class="label">Data validation</span><span class="value">PASS</span></div>
     </div>
     <section>
       <h2>Final Criteria</h2>
       <ul class="criteria"><li><span class="pass">PASS</span> case suite has 10 to 20 stocks</li>
+<li><span class="pass">PASS</span> dataset schema valid</li>
 <li><span class="pass">PASS</span> all cases pass</li>
 <li><span class="pass">PASS</span> multi agent beats minimal surface</li>
-<li><span class="pass">PASS</span> backtest available</li></ul>
+<li><span class="pass">PASS</span> backtest available</li>
+<li><span class="pass">PASS</span> dynamic strategy backtest available</li>
+<li><span class="pass">PASS</span> stress test available</li></ul>
     </section>
     <section>
       <h2>Case Results</h2>
       <table>
         <thead><tr><th>Case</th><th>Task</th><th>Status</th><th>Output</th><th>Notes</th></tr></thead>
-        <tbody><tr><td>positive_ai_infrastructure</td><td>single</td><td><span class="pass">PASS</span></td><td>NVDA BUY</td><td>score=1.305; focus=market</td></tr><tr><td>negative_auto_demand</td><td>single</td><td><span class="pass">PASS</span></td><td>TSLA SELL</td><td>score=-0.7542; focus=market, negative</td></tr><tr><td>defensive_retail</td><td>single</td><td><span class="pass">PASS</span></td><td>WMT BUY</td><td>score=0.82; focus=evidence reviewed</td></tr><tr><td>regulatory_healthcare</td><td>single</td><td><span class="pass">PASS</span></td><td>UNH HOLD</td><td>score=-0.3792; focus=regulatory, margin</td></tr><tr><td>mixed_search_cloud</td><td>single</td><td><span class="pass">PASS</span></td><td>GOOGL HOLD</td><td>score=0.7117; focus=evidence reviewed</td></tr><tr><td>chip_margin_conflict</td><td>single</td><td><span class="pass">PASS</span></td><td>AMD HOLD</td><td>score=-0.2667; focus=product, margin</td></tr><tr><td>financial_credit_watch</td><td>single</td><td><span class="pass">PASS</span></td><td>JPM HOLD</td><td>score=0.6492; focus=credit</td></tr><tr><td>energy_commodity_mixed</td><td>single</td><td><span class="pass">PASS</span></td><td>XOM HOLD</td><td>score=-0.125; focus=commodity, capital, return</td></tr><tr><td>mega_cap_services</td><td>single</td><td><span class="pass">PASS</span></td><td>AAPL HOLD</td><td>score=0.5533; focus=regulatory</td></tr><tr><td>cloud_quality</td><td>single</td><td><span class="pass">PASS</span></td><td>MSFT BUY</td><td>score=1.1867; focus=growth</td></tr><tr><td>mega_cap_pool</td><td>screen</td><td><span class="pass">PASS</span></td><td>top=NVDA</td><td>score=1.305; candidates=6</td></tr><tr><td>cross_sector_pool</td><td>screen</td><td><span class="pass">PASS</span></td><td>top=NVDA</td><td>score=1.305; candidates=12</td></tr><tr><td>balanced_existing_portfolio</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=8.00%</td><td>warnings=2</td></tr><tr><td>overweight_high_risk</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=10.00%</td><td>warnings=7</td></tr><tr><td>cash_defensive_rotation</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=19.80%</td><td>warnings=6</td></tr></tbody>
+        <tbody><tr><td>positive_ai_infrastructure</td><td>single</td><td><span class="pass">PASS</span></td><td>NVDA BUY</td><td>score=1.305; focus=market</td></tr><tr><td>negative_auto_demand</td><td>single</td><td><span class="pass">PASS</span></td><td>TSLA SELL</td><td>score=-0.7542; focus=market, negative</td></tr><tr><td>defensive_retail</td><td>single</td><td><span class="pass">PASS</span></td><td>WMT BUY</td><td>score=0.82; focus=evidence reviewed</td></tr><tr><td>regulatory_healthcare</td><td>single</td><td><span class="pass">PASS</span></td><td>UNH HOLD</td><td>score=-0.3792; focus=regulatory, margin</td></tr><tr><td>mixed_search_cloud</td><td>single</td><td><span class="pass">PASS</span></td><td>GOOGL HOLD</td><td>score=0.7117; focus=evidence reviewed</td></tr><tr><td>chip_margin_conflict</td><td>single</td><td><span class="pass">PASS</span></td><td>AMD HOLD</td><td>score=-0.2667; focus=product, margin</td></tr><tr><td>financial_credit_watch</td><td>single</td><td><span class="pass">PASS</span></td><td>JPM HOLD</td><td>score=0.6492; focus=credit</td></tr><tr><td>energy_commodity_mixed</td><td>single</td><td><span class="pass">PASS</span></td><td>XOM HOLD</td><td>score=-0.125; focus=commodity, capital, return</td></tr><tr><td>mega_cap_services</td><td>single</td><td><span class="pass">PASS</span></td><td>AAPL HOLD</td><td>score=0.5533; focus=regulatory</td></tr><tr><td>cloud_quality</td><td>single</td><td><span class="pass">PASS</span></td><td>MSFT BUY</td><td>score=1.1867; focus=growth</td></tr><tr><td>mega_cap_pool</td><td>screen</td><td><span class="pass">PASS</span></td><td>top=NVDA</td><td>score=1.305; candidates=6</td></tr><tr><td>cross_sector_pool</td><td>screen</td><td><span class="pass">PASS</span></td><td>top=NVDA</td><td>score=1.305; candidates=12</td></tr><tr><td>balanced_existing_portfolio</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=8.00%</td><td>warnings=1</td></tr><tr><td>overweight_high_risk</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=10.00%</td><td>warnings=7</td></tr><tr><td>cash_defensive_rotation</td><td>rebalance</td><td><span class="pass">PASS</span></td><td>cash=19.80%</td><td>warnings=6</td></tr></tbody>
       </table>
     </section>
     <div class="two-col">
@@ -174,6 +178,29 @@
             <tr><th>Annualized return</th><td>22.03%</td></tr>
             <tr><th>Max drawdown</th><td>-1.37%</td></tr>
             <tr><th>Sharpe ratio</th><td>2.44</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+    <div class="two-col">
+      <section>
+        <h2>Decision-Weighted Backtest</h2>
+        <table>
+          <tbody>
+            <tr><th>Observations</th><td>59</td></tr>
+            <tr><th>Rebalances</th><td>12</td></tr>
+            <tr><th>Average turnover</th><td>14.25%</td></tr>
+            <tr><th>Cumulative return</th><td>8.65%</td></tr>
+            <tr><th>Max drawdown</th><td>-1.18%</td></tr>
+            <tr><th>Sharpe ratio</th><td>4.82</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section>
+        <h2>Portfolio Stress Test</h2>
+        <table>
+          <tbody>
+            <tr><th>broad_market_selloff</th><td>-7.36%</td><td>NVDA, MSFT, META</td></tr><tr><th>tech_ai_drawdown</th><td>-7.46%</td><td>NVDA, MSFT, META</td></tr><tr><th>rates_credit_tightening</th><td>-4.57%</td><td>NVDA, JPM, MSFT</td></tr><tr><th>energy_price_spike</th><td>-1.76%</td><td>NVDA, MSFT, META</td></tr><tr><th>defensive_rotation</th><td>-2.13%</td><td>NVDA, MSFT, META</td></tr>
           </tbody>
         </table>
       </section>

@@ -1,5 +1,20 @@
 # AI Coding Context
 
+## Enhanced Final Status (2026-06-17)
+
+The project now exceeds the original proposal scope:
+
+- Unit tests: 7/7 passing.
+- Final benchmark: 15/15 cases passing.
+- Final criteria: 7/7 passing.
+- Dataset validation: PASS, 12 tickers, 720 price rows, 60 price dates, no warnings.
+- OpenRouter smoke test: `openai/gpt-oss-20b:free`, `llm_review.used=true`.
+- Equal-weight backtest: 4.77% cumulative return, -1.37% max drawdown, Sharpe 2.44.
+- Decision-weighted strategy backtest: 8.65% cumulative return, -1.18% max drawdown, Sharpe 4.82, 12 rebalances.
+- Portfolio stress test: worst scenario `tech_ai_drawdown`, -7.46%.
+- Main generated reports: `reports/dataset_validation.md`, `reports/benchmark_results.md`, `reports/final_benchmark_results.md`, `reports/final_dashboard.html`.
+- Iteration plan and execution record: `docs/ITERATION_OPTIMIZATION_PLAN.md`.
+
 这份文档用于给后续 AI coding 工具或小组成员提供项目上下文，避免只进行零散问答或孤立代码生成。
 
 ## 项目目标
@@ -28,7 +43,7 @@
 
 验证结果：
 
-- 单元测试：6/6 通过
+- 单元测试：7/7 通过
 - Final benchmark：15/15 cases 通过
 
 ## 快速复现

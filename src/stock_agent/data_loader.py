@@ -133,3 +133,100 @@ def load_dataset(
     data_dir: str | Path,
 ) -> tuple[list[PriceBar], list[NewsItem], list[FundamentalRecord], dict]:
     return load_sample_dataset(data_dir)
+
+
+def validate_dataset(
+    prices: list[PriceBar],
+    news: list[NewsItem],
+    fundamentals: list[FundamentalRecord],
+    portfolio: dict,
+) -> dict:
+    errors: list[str] = []
+    warnings: list[str] = []
+    price_tickers = sorted({bar.ticker for bar in prices})
+    news_tickers = sorted({item.ticker for item in news})
+    fundamental_tickers = sorted({item.ticker for item in fundamentals})
+    price_dates = sorted({bar.date for bar in prices})
+
+    if not prices:
+        errors.append("prices.csv has no rows.")
+    if not price_tickers:
+        errors.append("No ticker universe could be inferred from prices.")
+    if len(price_tickers) < 10:
+        warnings.append("Ticker universe has fewer than 10 stocks; final benchmark expects 10-20.")
+    if len(price_tickers) > 20:
+        warnings.append("Ticker universe has more than 20 stocks; course benchmark may be too broad.")
+
+    invalid_price_rows = [
+        f"{bar.ticker}@{bar.date.isoformat()}"
+        for bar in prices
+        if bar.low > bar.high
+        or bar.close <= 0
+        or bar.open <= 0
+        or bar.high <= 0
+        or bar.low <= 0
+        or bar.volume < 0
+    ]
+    if invalid_price_rows:
+        errors.append(
+            "Invalid OHLCV rows: " + ", ".join(invalid_price_rows[:5])
+            + (" ..." if len(invalid_price_rows) > 5 else "")
+        )
+
+    missing_news = sorted(set(price_tickers) - set(news_tickers))
+    missing_fundamentals = sorted(set(price_tickers) - set(fundamental_tickers))
+    if missing_news:
+        warnings.append("Missing news rows for: " + ", ".join(missing_news))
+    if missing_fundamentals:
+        errors.append("Missing fundamental rows for: " + ", ".join(missing_fundamentals))
+
+    constraints = portfolio.get("constraints", {})
+    positions = portfolio.get("positions", {})
+    cash = float(portfolio.get("cash", 0.0))
+    total_weight = cash + sum(float(weight) for weight in positions.values())
+    if abs(total_weight - 1.0) > 1e-4:
+        warnings.append(f"Portfolio weights sum to {total_weight:.4f}, not exactly 1.0.")
+    if cash < 0:
+        errors.append("Portfolio cash weight is negative.")
+    if float(constraints.get("max_position_weight", 1.0)) <= 0:
+        errors.append("max_position_weight must be positive.")
+    if float(constraints.get("max_trade_weight", 1.0)) <= 0:
+        errors.append("max_trade_weight must be positive.")
+    min_cash = float(constraints.get("min_cash_weight", 0.0))
+    if min_cash < 0 or min_cash > 1:
+        errors.append("min_cash_weight must be in [0, 1].")
+
+    coverage_by_ticker = {
+        ticker: sum(1 for bar in prices if bar.ticker == ticker)
+        for ticker in price_tickers
+    }
+    min_price_rows = min(coverage_by_ticker.values()) if coverage_by_ticker else 0
+    if min_price_rows < 20:
+        warnings.append("At least one ticker has fewer than 20 price rows.")
+
+    return {
+        "valid": not errors,
+        "errors": errors,
+        "warnings": warnings,
+        "counts": {
+            "prices": len(prices),
+            "news": len(news),
+            "fundamentals": len(fundamentals),
+            "tickers": len(price_tickers),
+            "price_dates": len(price_dates),
+        },
+        "date_range": {
+            "start": price_dates[0].isoformat() if price_dates else None,
+            "end": price_dates[-1].isoformat() if price_dates else None,
+        },
+        "coverage": {
+            "price_rows_by_ticker": coverage_by_ticker,
+            "missing_news_tickers": missing_news,
+            "missing_fundamental_tickers": missing_fundamentals,
+        },
+        "portfolio": {
+            "total_weight": round(total_weight, 6),
+            "cash": round(cash, 6),
+            "constraints": constraints,
+        },
+    }

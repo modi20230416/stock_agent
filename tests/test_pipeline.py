@@ -10,7 +10,12 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from stock_agent.evaluator import final_benchmark_to_html, final_benchmark_to_markdown
+from stock_agent.data_loader import validate_dataset
+from stock_agent.evaluator import (
+    data_validation_to_markdown,
+    final_benchmark_to_html,
+    final_benchmark_to_markdown,
+)
 from stock_agent.pipeline import StockDecisionSystem
 
 
@@ -48,6 +53,9 @@ class StockDecisionSystemTest(unittest.TestCase):
         benchmark = self.system.benchmark(["AAPL", "MSFT", "TSLA", "NVDA"], "2026-05-19")
         self.assertIn("success_criteria", benchmark)
         self.assertEqual(benchmark["llm"]["mode"], "off")
+        self.assertTrue(benchmark["data_validation"]["valid"])
+        self.assertGreater(benchmark["decision_weighted_backtest"]["observations"], 0)
+        self.assertGreaterEqual(len(benchmark["stress_test"]), 3)
         self.assertTrue(benchmark["success_criteria"]["single_stock_has_action_reason_and_risk"])
         self.assertTrue(benchmark["success_criteria"]["rebalance_respects_constraints"])
 
@@ -60,17 +68,38 @@ class StockDecisionSystemTest(unittest.TestCase):
         self.assertEqual(benchmark["suite"]["case_counts"]["total"], 15)
         self.assertEqual(benchmark["aggregate"]["passed_cases"], 15)
         self.assertTrue(benchmark["success_criteria"]["case_suite_has_10_to_20_stocks"])
+        self.assertTrue(benchmark["success_criteria"]["dataset_schema_valid"])
         self.assertTrue(benchmark["success_criteria"]["all_cases_pass"])
+        self.assertTrue(benchmark["success_criteria"]["dynamic_strategy_backtest_available"])
+        self.assertTrue(benchmark["success_criteria"]["stress_test_available"])
         self.assertGreater(
             benchmark["baseline_comparison"]["equal_weight_backtest"]["observations"],
+            0,
+        )
+        self.assertGreater(
+            benchmark["baseline_comparison"]["decision_weighted_backtest"]["observations"],
             0,
         )
         self.assertIn("direct_llm_baseline", benchmark["baseline_comparison"])
         markdown = final_benchmark_to_markdown(benchmark)
         html = final_benchmark_to_html(benchmark)
         self.assertIn("Pass rate: 15/15", markdown)
+        self.assertIn("Decision-weighted cumulative return", markdown)
         self.assertIn("Stock Agent Final Dashboard", html)
+        self.assertIn("Decision-Weighted Backtest", html)
         self.assertIn("positive_ai_infrastructure", html)
+
+    def test_dataset_validation_report(self) -> None:
+        payload = validate_dataset(
+            self.system.prices,
+            self.system.news,
+            self.system.fundamentals,
+            self.system.portfolio,
+        )
+        self.assertTrue(payload["valid"])
+        self.assertGreaterEqual(payload["counts"]["tickers"], 4)
+        markdown = data_validation_to_markdown(payload)
+        self.assertIn("Dataset Validation", markdown)
 
     def test_llm_off_disables_direct_llm_baseline(self) -> None:
         original_key = os.environ.get("OPENROUTER_API_KEY")

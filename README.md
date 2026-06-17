@@ -85,6 +85,8 @@ $env:OPENROUTER_API_KEY="你的 OpenRouter key"
 - `reports/single_analysis.json`
 - `reports/candidate_screening.json`
 - `reports/rebalance.json`
+- `reports/dataset_validation.json`
+- `reports/dataset_validation.md`
 - `reports/benchmark_results.json`
 - `reports/benchmark_results.md`
 - `reports/final_benchmark_results.json`
@@ -95,8 +97,21 @@ $env:OPENROUTER_API_KEY="你的 OpenRouter key"
 
 - Final report source/PDF: `llm_course_project_report_template/final_report.tex`, `llm_course_project_report_template/final_report.pdf`
 - Presentation source/PDF: `llm_course_project_report_template/final_presentation.tex`, `llm_course_project_report_template/final_presentation.pdf`
+- Dataset validation: `reports/dataset_validation.md`
 - Benchmark summary: `reports/final_benchmark_results.md`
 - Static dashboard: `reports/final_dashboard.html`
+- Iteration plan: `docs/ITERATION_OPTIMIZATION_PLAN.md`
+
+## Enhanced final status
+
+- Unit tests: 7/7 passing.
+- Final benchmark: 15/15 cases passing.
+- Final criteria: 7/7 passing, including dataset schema validation, dynamic strategy backtest, and stress test availability.
+- Dataset validation: PASS, 12 tickers, 720 price rows, 60 price dates, no warnings.
+- Equal-weight backtest: 4.77% cumulative return, -1.37% max drawdown, 2.44 Sharpe.
+- Decision-weighted backtest: 8.65% cumulative return, -1.18% max drawdown, 4.82 Sharpe, 12 rebalances.
+- Worst stress scenario: `tech_ai_drawdown`, -7.46%.
+- OpenRouter smoke test: `openai/gpt-oss-20b:free`, `llm_review.used=true`.
 
 仓库默认提交 Markdown/HTML 摘要，JSON 详情作为本地生成产物保留在 `.gitignore` 中。
 
@@ -147,7 +162,7 @@ tests/                    单元测试和 final benchmark 测试
 
 当前结果：
 
-- 单元测试：6/6 通过。
+- 单元测试：7/7 通过。
 - Final benchmark：15/15 cases 通过。
 - 股票池规模：12 支，满足 10-20 支股票要求。
 - 风控调仓：3 个 portfolio cases 均满足持仓、现金和交易约束。

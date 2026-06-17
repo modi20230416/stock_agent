@@ -7,9 +7,12 @@
 
 ## Final Criteria
 - PASS: case suite has 10 to 20 stocks
+- PASS: dataset schema valid
 - PASS: all cases pass
 - PASS: multi agent beats minimal surface
 - PASS: backtest available
+- PASS: dynamic strategy backtest available
+- PASS: stress test available
 
 ## Case Results
 
@@ -27,7 +30,7 @@
 | cloud_quality | single | PASS | MSFT BUY score=1.1867; focus=growth |
 | mega_cap_pool | screen | PASS | top=NVDA score=1.305 |
 | cross_sector_pool | screen | PASS | top=NVDA score=1.305 |
-| balanced_existing_portfolio | rebalance | PASS | cash=8.00%, warnings=2 |
+| balanced_existing_portfolio | rebalance | PASS | cash=8.00%, warnings=1 |
 | overweight_high_risk | rebalance | PASS | cash=10.00%, warnings=7 |
 | cash_defensive_rotation | rebalance | PASS | cash=19.80%, warnings=6 |
 
@@ -39,3 +42,8 @@
 - Direct LLM baseline used LLM count: 0
 - Equal-weight cumulative return: 4.77%
 - Equal-weight max drawdown: -1.37%
+- Decision-weighted cumulative return: 8.65%
+- Decision-weighted max drawdown: -1.18%
+- Decision-weighted rebalances: 12
+- Worst stress scenario: tech_ai_drawdown (-7.46%)
+- Data validation: PASS (12 tickers)
