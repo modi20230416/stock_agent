@@ -47,9 +47,15 @@
 | Rebalances | 12 |
 | Average turnover | 14.25% |
 | Average cash | 8.00% |
-| Cumulative return | 8.65% |
+| Cost per turn | 0.1000% |
+| Impact coefficient | 0.0500 |
+| Base cost | 0.1710% |
+| Slippage/impact | 0.0075% |
+| Total transaction cost | 0.1786% |
+| Gross cumulative return | 8.65% |
+| Net cumulative return | 8.46% |
 | Max drawdown | -1.18% |
-| Sharpe ratio | 4.82 |
+| Sharpe ratio | 4.73 |
 
 ## Portfolio Stress Test
 

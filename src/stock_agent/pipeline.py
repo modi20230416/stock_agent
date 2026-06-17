@@ -450,10 +450,13 @@ class StockDecisionSystem:
         }
         current_weights["CASH"] = float(self.portfolio.get("cash", 0.0))
         weights_by_date: dict[date, dict[str, float]] = {}
+        turnover_by_date: dict[date, float] = {}
         turnover_total = 0.0
         cash_total = 0.0
         warning_count = 0
         rebalance_count = 0
+        cost_per_turn = float(self.constraints.get("transaction_cost", 0.0010))
+        impact_coefficient = float(self.constraints.get("impact_coefficient", 0.05))
 
         for index in range(1, len(dates)):
             signal_date = dates[index - 1]
@@ -472,17 +475,30 @@ class StockDecisionSystem:
                     selected, signal_date
                 )
                 current_weights = recommendation.target_weights
-                turnover_total += sum(
+                period_turnover = sum(
                     abs(value)
                     for asset, value in recommendation.trades.items()
                     if asset != "CASH"
+                )
+                turnover_total += period_turnover
+                # The cost from rebalancing is realized on the next return date.
+                turnover_by_date[return_date] = (
+                    turnover_by_date.get(return_date, 0.0) + period_turnover
                 )
                 cash_total += current_weights.get("CASH", 0.0)
                 warning_count += len(recommendation.warnings)
                 rebalance_count += 1
             weights_by_date[return_date] = dict(current_weights)
 
-        result = weighted_backtest(self.prices, selected, weights_by_date).to_dict()
+        backtest = weighted_backtest(
+            self.prices,
+            selected,
+            weights_by_date,
+            cost_per_turn=cost_per_turn,
+            turnover_by_date=turnover_by_date,
+            impact_coefficient=impact_coefficient,
+        )
+        result = backtest.to_dict()
         result.update(
             {
                 "method": "decision_weighted",
@@ -495,6 +511,11 @@ class StockDecisionSystem:
                     cash_total / rebalance_count if rebalance_count else 0.0, 4
                 ),
                 "risk_warning_count": warning_count,
+                "cost_per_turn": round(cost_per_turn, 6),
+                "impact_coefficient": round(impact_coefficient, 6),
+                "total_transaction_cost": round(backtest.total_cost, 6),
+                "total_base_cost": round(backtest.total_base_cost, 6),
+                "total_slippage": round(backtest.total_slippage, 6),
             }
         )
         return result

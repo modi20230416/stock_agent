@@ -29,7 +29,16 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the multi-agent stock decision prototype."
     )
-    parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
+    parser.add_argument("--data-dir", default=None)
+    parser.add_argument(
+        "--source",
+        choices=["processed", "sample", "real"],
+        default="processed",
+        help=(
+            "Dataset source. processed/sample are offline deterministic datasets; "
+            "real uses data/real built by scripts/ingest_real_data.py."
+        ),
+    )
     parser.add_argument("--output-dir", default=str(ROOT / "reports"))
     parser.add_argument("--as-of", default="2026-05-22")
     parser.add_argument("--ticker", default="AAPL")
@@ -66,12 +75,34 @@ def write_payload(payload, path: Path) -> None:
     print(f"Wrote {path}")
 
 
+def resolve_data_dir(args: argparse.Namespace) -> Path:
+    if args.data_dir:
+        return Path(args.data_dir)
+    mapping = {
+        "processed": ROOT / "data" / "processed",
+        "sample": ROOT / "data" / "sample",
+        "real": ROOT / "data" / "real",
+    }
+    chosen = mapping[args.source]
+    if not chosen.exists():
+        if args.source == "real":
+            raise SystemExit(
+                "data/real not found. Build it first:\n"
+                "  python scripts/ingest_real_data.py --refresh   (online)\n"
+                "  python scripts/ingest_real_data.py --offline    (from cache)"
+            )
+        return DEFAULT_DATA_DIR
+    return chosen
+
+
 def main() -> int:
     args = parse_args()
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     tickers = [item.strip().upper() for item in args.tickers.split(",") if item.strip()]
-    system = StockDecisionSystem.from_data_dir(args.data_dir, use_llm=args.llm)
+    data_dir = resolve_data_dir(args)
+    print(f"Using dataset: {data_dir}")
+    system = StockDecisionSystem.from_data_dir(data_dir, use_llm=args.llm)
     results = {}
 
     if args.task in {"validate", "all"}:
@@ -111,7 +142,7 @@ def main() -> int:
         results["benchmark"] = payload
 
     if args.task in {"final", "all"}:
-        payload = system.benchmark_cases(args.cases_file, data_dir=args.data_dir)
+        payload = system.benchmark_cases(args.cases_file, data_dir=data_dir)
         write_payload(payload, output_dir / "final_benchmark_results.json")
         markdown = final_benchmark_to_markdown(payload)
         markdown_path = output_dir / "final_benchmark_results.md"

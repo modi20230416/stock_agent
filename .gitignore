@@ -29,3 +29,6 @@ venv/
 *.url
 reports/*.json
 !reports/*.md
+# Real-data link artifacts: reproducible via scripts/ingest_real_data.py
+data/cache/
+data/real/

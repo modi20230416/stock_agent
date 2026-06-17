@@ -56,8 +56,48 @@ class StockDecisionSystemTest(unittest.TestCase):
         self.assertTrue(benchmark["data_validation"]["valid"])
         self.assertGreater(benchmark["decision_weighted_backtest"]["observations"], 0)
         self.assertGreaterEqual(len(benchmark["stress_test"]), 3)
+        decision_backtest = benchmark["decision_weighted_backtest"]
+        self.assertIn("net_cumulative_return", decision_backtest)
+        self.assertIn("gross_cumulative_return", decision_backtest)
+        self.assertIn("total_transaction_cost", decision_backtest)
+        self.assertGreaterEqual(decision_backtest["total_transaction_cost"], 0.0)
+        self.assertLessEqual(
+            decision_backtest["net_cumulative_return"],
+            decision_backtest["gross_cumulative_return"] + 1e-9,
+        )
         self.assertTrue(benchmark["success_criteria"]["single_stock_has_action_reason_and_risk"])
         self.assertTrue(benchmark["success_criteria"]["rebalance_respects_constraints"])
+
+    def test_decision_weighted_backtest_includes_cost(self) -> None:
+        benchmark = self.system.benchmark(["AAPL", "MSFT", "TSLA", "NVDA"], "2026-05-19")
+        decision_backtest = benchmark["decision_weighted_backtest"]
+        self.assertIn("cost_per_turn", decision_backtest)
+        self.assertGreater(decision_backtest["cost_per_turn"], 0.0)
+        self.assertGreaterEqual(decision_backtest["total_transaction_cost"], 0.0)
+        # Net return must never exceed gross return once costs are deducted.
+        self.assertLessEqual(
+            decision_backtest["net_cumulative_return"],
+            decision_backtest["gross_cumulative_return"] + 1e-9,
+        )
+
+    def test_decision_weighted_backtest_models_slippage(self) -> None:
+        benchmark = self.system.benchmark(["AAPL", "MSFT", "TSLA", "NVDA"], "2026-05-19")
+        decision_backtest = benchmark["decision_weighted_backtest"]
+        self.assertIn("impact_coefficient", decision_backtest)
+        self.assertIn("total_base_cost", decision_backtest)
+        self.assertIn("total_slippage", decision_backtest)
+        self.assertGreaterEqual(decision_backtest["total_slippage"], 0.0)
+        # Total cost must equal base cost plus slippage (within rounding).
+        self.assertAlmostEqual(
+            decision_backtest["total_transaction_cost"],
+            decision_backtest["total_base_cost"] + decision_backtest["total_slippage"],
+            places=5,
+        )
+        # Net return is never above gross once base cost and slippage are deducted.
+        self.assertLessEqual(
+            decision_backtest["net_cumulative_return"],
+            decision_backtest["gross_cumulative_return"] + 1e-9,
+        )
 
     def test_final_case_suite_runs(self) -> None:
         system = StockDecisionSystem.from_data_dir(ROOT / "data" / "processed", use_llm="off")
@@ -84,7 +124,8 @@ class StockDecisionSystemTest(unittest.TestCase):
         markdown = final_benchmark_to_markdown(benchmark)
         html = final_benchmark_to_html(benchmark)
         self.assertIn("Pass rate: 15/15", markdown)
-        self.assertIn("Decision-weighted cumulative return", markdown)
+        self.assertIn("Decision-weighted net cumulative return", markdown)
+        self.assertIn("Decision-weighted total transaction cost", markdown)
         self.assertIn("Stock Agent Final Dashboard", html)
         self.assertIn("Decision-Weighted Backtest", html)
         self.assertIn("positive_ai_infrastructure", html)

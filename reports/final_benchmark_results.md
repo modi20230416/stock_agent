@@ -42,7 +42,11 @@
 - Direct LLM baseline used LLM count: 0
 - Equal-weight cumulative return: 4.77%
 - Equal-weight max drawdown: -1.37%
-- Decision-weighted cumulative return: 8.65%
+- Decision-weighted net cumulative return: 8.46%
+- Decision-weighted gross cumulative return: 8.65%
+- Decision-weighted total transaction cost: 0.1786%
+- Decision-weighted base cost: 0.1710%
+- Decision-weighted slippage/impact: 0.0075%
 - Decision-weighted max drawdown: -1.18%
 - Decision-weighted rebalances: 12
 - Worst stress scenario: tech_ai_drawdown (-7.46%)

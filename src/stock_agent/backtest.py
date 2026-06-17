@@ -20,14 +20,28 @@ class BacktestResult:
     max_drawdown: float
     sharpe_ratio: float
     observations: int
+    total_cost: float = 0.0
+    gross_cumulative_return: float | None = None
+    total_base_cost: float = 0.0
+    total_slippage: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
+        gross = (
+            self.gross_cumulative_return
+            if self.gross_cumulative_return is not None
+            else self.cumulative_return
+        )
         return {
             "start_date": self.start_date.isoformat(),
             "end_date": self.end_date.isoformat(),
             "initial_value": round(self.initial_value, 4),
             "final_value": round(self.final_value, 4),
             "cumulative_return": round(self.cumulative_return, 4),
+            "gross_cumulative_return": round(gross, 4),
+            "net_cumulative_return": round(self.cumulative_return, 4),
+            "total_cost": round(self.total_cost, 6),
+            "total_base_cost": round(self.total_base_cost, 6),
+            "total_slippage": round(self.total_slippage, 6),
             "annualized_return": round(self.annualized_return, 4),
             "max_drawdown": round(self.max_drawdown, 4),
             "sharpe_ratio": round(self.sharpe_ratio, 4),
@@ -49,8 +63,26 @@ def _returns_by_date(prices: list[PriceBar], tickers: list[str]) -> dict[date, d
     return by_date
 
 
+def _portfolio_volatility(prices: list[PriceBar], tickers: list[str]) -> dict[str, float]:
+    """Historical daily return volatility per ticker, used for slippage scaling."""
+    returns_by_date = _returns_by_date(prices, tickers)
+    series: dict[str, list[float]] = {}
+    for ticker_returns in returns_by_date.values():
+        for ticker, value in ticker_returns.items():
+            series.setdefault(ticker, []).append(value)
+    return {
+        ticker: (pstdev(values) if len(values) > 1 else 0.0)
+        for ticker, values in series.items()
+    }
+
+
 def _summarize_daily_returns(
-    ordered_dates: list[date], daily_returns: list[float], initial_value: float = 1.0
+    ordered_dates: list[date],
+    daily_returns: list[float],
+    initial_value: float = 1.0,
+    daily_costs: list[float] | None = None,
+    daily_base_costs: list[float] | None = None,
+    daily_slippages: list[float] | None = None,
 ) -> BacktestResult:
     if not ordered_dates:
         today = date.today()
@@ -64,21 +96,37 @@ def _summarize_daily_returns(
             0.0,
             0.0,
             0,
+            total_cost=0.0,
+            gross_cumulative_return=0.0,
+            total_base_cost=0.0,
+            total_slippage=0.0,
         )
+
+    costs = daily_costs if daily_costs is not None else [0.0] * len(daily_returns)
+    base_costs = daily_base_costs if daily_base_costs is not None else [0.0] * len(daily_returns)
+    slippages = daily_slippages if daily_slippages is not None else [0.0] * len(daily_returns)
+    net_returns = [
+        gross - cost for gross, cost in zip(daily_returns, costs)
+    ]
 
     value = initial_value
     peak = initial_value
     max_drawdown = 0.0
-    for portfolio_return in daily_returns:
+    for portfolio_return in net_returns:
         value *= 1.0 + portfolio_return
         peak = max(peak, value)
         max_drawdown = min(max_drawdown, value / peak - 1.0)
 
+    gross_value = initial_value
+    for gross_return in daily_returns:
+        gross_value *= 1.0 + gross_return
+
     cumulative_return = value / initial_value - 1.0
-    periods = len(daily_returns)
+    gross_cumulative_return = gross_value / initial_value - 1.0
+    periods = len(net_returns)
     annualized_return = ((value / initial_value) ** (252 / periods) - 1.0) if periods else 0.0
-    volatility = pstdev(daily_returns) if len(daily_returns) > 1 else 0.0
-    sharpe = (mean(daily_returns) / volatility * sqrt(252)) if volatility else 0.0
+    volatility = pstdev(net_returns) if len(net_returns) > 1 else 0.0
+    sharpe = (mean(net_returns) / volatility * sqrt(252)) if volatility else 0.0
     return BacktestResult(
         start_date=ordered_dates[0],
         end_date=ordered_dates[-1],
@@ -89,6 +137,10 @@ def _summarize_daily_returns(
         max_drawdown=max_drawdown,
         sharpe_ratio=sharpe,
         observations=periods,
+        total_cost=sum(costs),
+        gross_cumulative_return=gross_cumulative_return,
+        total_base_cost=sum(base_costs),
+        total_slippage=sum(slippages),
     )
 
 
@@ -108,18 +160,49 @@ def weighted_backtest(
     prices: list[PriceBar],
     tickers: list[str],
     weights_by_date: dict[date, dict[str, float]],
+    cost_per_turn: float = 0.0,
+    turnover_by_date: dict[date, float] | None = None,
+    impact_coefficient: float = 0.0,
 ) -> BacktestResult:
+    """Weighted backtest with linear base cost plus a convex market-impact slippage.
+
+    Slippage per rebalance is modeled as
+        impact_coefficient * turnover^2 * portfolio_volatility
+    so that larger trades into more volatile portfolios incur disproportionately
+    higher execution cost, in line with square-root/quadratic impact literature.
+    """
     returns_by_date = _returns_by_date(prices, tickers)
     ordered_dates = [current_date for current_date in sorted(returns_by_date) if current_date in weights_by_date]
     selected_tickers = [ticker.upper() for ticker in tickers]
+    turnover_by_date = turnover_by_date or {}
+    vol_by_ticker = _portfolio_volatility(prices, selected_tickers)
     daily_returns: list[float] = []
+    daily_costs: list[float] = []
+    daily_base_costs: list[float] = []
+    daily_slippages: list[float] = []
     for current_date in ordered_dates:
         weights = weights_by_date[current_date]
         ticker_returns = returns_by_date[current_date]
         daily_returns.append(
             sum(weights.get(ticker, 0.0) * ticker_returns.get(ticker, 0.0) for ticker in selected_tickers)
         )
-    return _summarize_daily_returns(ordered_dates, daily_returns)
+        turnover = turnover_by_date.get(current_date, 0.0)
+        base_cost = turnover * cost_per_turn
+        portfolio_vol = sum(
+            weights.get(ticker, 0.0) * vol_by_ticker.get(ticker, 0.0)
+            for ticker in selected_tickers
+        )
+        slippage = impact_coefficient * (turnover ** 2) * portfolio_vol
+        daily_base_costs.append(base_cost)
+        daily_slippages.append(slippage)
+        daily_costs.append(base_cost + slippage)
+    return _summarize_daily_returns(
+        ordered_dates,
+        daily_returns,
+        daily_costs=daily_costs,
+        daily_base_costs=daily_base_costs,
+        daily_slippages=daily_slippages,
+    )
 
 
 def stress_test_portfolio(weights: dict[str, float]) -> list[dict[str, Any]]:

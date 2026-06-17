@@ -119,6 +119,23 @@ def load_benchmark_cases(path: str | Path, data_dir: str | Path | None = None) -
     }
 
 
+def load_vendor_prices(
+    ticker: str,
+    path: str | Path,
+    start: date | None = None,
+    end: date | None = None,
+) -> list[PriceBar]:
+    """Load a raw vendor CSV file (Stooq/Yahoo/Kaggle style) for one ticker.
+
+    This normalizes external column names (e.g. ``Date,Open,High,Low,Close,Volume``
+    or ``Adj Close``) into the internal OHLCV schema.
+    """
+    from .data_sources import normalize_vendor_csv
+
+    csv_text = Path(path).read_text(encoding="utf-8")
+    return normalize_vendor_csv(ticker, csv_text, start=start, end=end)
+
+
 def load_sample_dataset(data_dir: str | Path) -> tuple[list[PriceBar], list[NewsItem], list[FundamentalRecord], dict]:
     root = Path(data_dir)
     return (

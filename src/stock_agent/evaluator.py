@@ -122,7 +122,13 @@ def benchmark_to_markdown(payload: dict[str, Any]) -> str:
                 f"| Rebalances | {decision_backtest['rebalance_count']} |",
                 f"| Average turnover | {decision_backtest['average_turnover']:.2%} |",
                 f"| Average cash | {decision_backtest['average_cash_weight']:.2%} |",
-                f"| Cumulative return | {decision_backtest['cumulative_return']:.2%} |",
+                f"| Cost per turn | {decision_backtest.get('cost_per_turn', 0.0):.4%} |",
+                f"| Impact coefficient | {decision_backtest.get('impact_coefficient', 0.0):.4f} |",
+                f"| Base cost | {decision_backtest.get('total_base_cost', 0.0):.4%} |",
+                f"| Slippage/impact | {decision_backtest.get('total_slippage', 0.0):.4%} |",
+                f"| Total transaction cost | {decision_backtest.get('total_transaction_cost', 0.0):.4%} |",
+                f"| Gross cumulative return | {decision_backtest.get('gross_cumulative_return', decision_backtest['cumulative_return']):.2%} |",
+                f"| Net cumulative return | {decision_backtest['cumulative_return']:.2%} |",
                 f"| Max drawdown | {decision_backtest['max_drawdown']:.2%} |",
                 f"| Sharpe ratio | {decision_backtest['sharpe_ratio']:.2f} |",
             ]
@@ -236,7 +242,11 @@ def final_benchmark_to_markdown(payload: dict[str, Any]) -> str:
     if decision_backtest:
         lines.extend(
             [
-                f"- Decision-weighted cumulative return: {decision_backtest['cumulative_return']:.2%}",
+                f"- Decision-weighted net cumulative return: {decision_backtest['cumulative_return']:.2%}",
+                f"- Decision-weighted gross cumulative return: {decision_backtest.get('gross_cumulative_return', decision_backtest['cumulative_return']):.2%}",
+                f"- Decision-weighted total transaction cost: {decision_backtest.get('total_transaction_cost', 0.0):.4%}",
+                f"- Decision-weighted base cost: {decision_backtest.get('total_base_cost', 0.0):.4%}",
+                f"- Decision-weighted slippage/impact: {decision_backtest.get('total_slippage', 0.0):.4%}",
                 f"- Decision-weighted max drawdown: {decision_backtest['max_drawdown']:.2%}",
                 f"- Decision-weighted rebalances: {decision_backtest['rebalance_count']}",
             ]
@@ -504,7 +514,11 @@ def final_benchmark_to_html(payload: dict[str, Any]) -> str:
             <tr><th>Observations</th><td>{decision_backtest.get('observations', 0)}</td></tr>
             <tr><th>Rebalances</th><td>{decision_backtest.get('rebalance_count', 0)}</td></tr>
             <tr><th>Average turnover</th><td>{decision_backtest.get('average_turnover', 0.0):.2%}</td></tr>
-            <tr><th>Cumulative return</th><td>{decision_backtest.get('cumulative_return', 0.0):.2%}</td></tr>
+            <tr><th>Base cost</th><td>{decision_backtest.get('total_base_cost', 0.0):.4%}</td></tr>
+            <tr><th>Slippage/impact</th><td>{decision_backtest.get('total_slippage', 0.0):.4%}</td></tr>
+            <tr><th>Total transaction cost</th><td>{decision_backtest.get('total_transaction_cost', 0.0):.4%}</td></tr>
+            <tr><th>Gross cumulative return</th><td>{decision_backtest.get('gross_cumulative_return', decision_backtest.get('cumulative_return', 0.0)):.2%}</td></tr>
+            <tr><th>Net cumulative return</th><td>{decision_backtest.get('cumulative_return', 0.0):.2%}</td></tr>
             <tr><th>Max drawdown</th><td>{decision_backtest.get('max_drawdown', 0.0):.2%}</td></tr>
             <tr><th>Sharpe ratio</th><td>{decision_backtest.get('sharpe_ratio', 0.0):.2f}</td></tr>
           </tbody>
