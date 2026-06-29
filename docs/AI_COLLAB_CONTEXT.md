@@ -1,18 +1,23 @@
 # AI Coding Context
 
-## Enhanced Final Status (2026-06-17)
+> 说明：本文件提供给后续 AI coding 工具和组员的当前上下文；完整时间线请见 [docs/AI_INTERACTION_LOG.md](docs/AI_INTERACTION_LOG.md).
+
+## Enhanced Final Status (2026-06-30)
 
 The project now exceeds the original proposal scope:
 
-- Unit tests: 7/7 passing.
+- Unit tests: 16/16 passing.
 - Final benchmark: 15/15 cases passing.
 - Final criteria: 7/7 passing.
 - Dataset validation: PASS, 12 tickers, 720 price rows, 60 price dates, no warnings.
+- Real data link: Yahoo Finance primary / Stooq fallback, cache + offline rebuild verified.
+- README organized for advisor review and team onboarding.
 - OpenRouter smoke test: `openai/gpt-oss-20b:free`, `llm_review.used=true`.
 - Equal-weight backtest: 4.77% cumulative return, -1.37% max drawdown, Sharpe 2.44.
 - Decision-weighted strategy backtest: 8.65% cumulative return, -1.18% max drawdown, Sharpe 4.82, 12 rebalances.
 - Portfolio stress test: worst scenario `tech_ai_drawdown`, -7.46%.
-- Main generated reports: `reports/dataset_validation.md`, `reports/benchmark_results.md`, `reports/final_benchmark_results.md`, `reports/final_dashboard.html`.
+- Main generated reports: `reports/dataset_validation.md`, `reports/benchmark_results.md`, `reports/final_benchmark_results.md`, `reports/final_dashboard.html`, `reports/VERIFICATION.md`.
+- Chronological interaction log: `docs/AI_INTERACTION_LOG.md`.
 - Iteration plan and execution record: `docs/ITERATION_OPTIMIZATION_PLAN.md`.
 
 这份文档用于给后续 AI coding 工具或小组成员提供项目上下文，避免只进行零散问答或孤立代码生成。
@@ -36,14 +41,17 @@ The project now exceeds the original proposal scope:
 - 15 个 benchmark cases：`data/benchmark/cases.json`
 - CLI 入口：`scripts/run_demo.py`
 - 数据生成脚本：`scripts/generate_final_data.py`
+- 真实数据链路：`scripts/ingest_real_data.py`、`src/stock_agent/data_sources.py`
+- Demo 前端：`scripts/demo_server.py`
 - 核心代码：`src/stock_agent/`
 - 测试：`tests/test_pipeline.py`
 - final benchmark 摘要：`reports/final_benchmark_results.md`
 - final dashboard：`reports/final_dashboard.html`
+- 验证记录：`reports/VERIFICATION.md`
 
 验证结果：
 
-- 单元测试：7/7 通过
+- 单元测试：16/16 通过
 - Final benchmark：15/15 cases 通过
 
 ## 快速复现
